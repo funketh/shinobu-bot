@@ -1,6 +1,7 @@
 import aiosqlite
 import discord
-from discord.ext.commands import Bot
+import logging
+from discord.ext.commands import Bot, Context
 
 from CONSTANTS import DB_PATH
 
@@ -13,13 +14,6 @@ async def extension_modules():
 
 
 class Shinobu(Bot):
-    async def on_ready(self):
-        await self.load_all_extensions()
-        print('Logged on as {0}!'.format(self.user))
-
-    async def on_message(self, message: discord.Message):
-        await super().on_message(message)
-
     async def load_all_extensions(self):
         async for ext in extension_modules():
             self.load_extension(ext)
@@ -31,3 +25,10 @@ class Shinobu(Bot):
     async def reload_all_extensions(self):
         await self._unload_all_extensions()
         await self.load_all_extensions()
+
+    async def on_ready(self):
+        await self.load_all_extensions()
+        logging.info('Logged on as {0}!'.format(self.user))
+
+    async def on_command_error(self, context: Context, exception: Exception):
+        logging.exception(exception)
