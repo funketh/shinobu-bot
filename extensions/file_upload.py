@@ -31,25 +31,21 @@ async def image_of_the_day(message: discord.Message):
     # TODO
     # if await checks.has_role(message.author, ManOfCulture):
     if True:
-        patterns = {
+        pattern_tags = {
             re.compile("of (the|this) day.*?:", re.IGNORECASE): {'RndImg'},
             re.compile("compensation.*?:", re.IGNORECASE): {'RndImg', 'Compensation'},
             re.compile("bonus.*?:", re.IGNORECASE): {'RndImg', 'Bonus'},
         }
-        tags = set()
-        for pattern in patterns:
-            if pattern.search(message.content):
-                tags |= patterns[pattern]
+        tags = set.union(*(tags for pattern, tags in pattern_tags.items() if pattern.search(message.content)))
         if len(tags) == 0:
             return
 
         if not message.attachments:
-            second_message = await message.channel.wait_for_message(author=message.author, timeout=360)
-            if second_message is None or not second_message.attachments:
-                return
-            url = second_message.attachments[0].url
-        else:
+            message = await message.channel.wait_for_message(author=message.author, timeout=300)
+        try:
             url = message.attachments[0].url
+        except (IndexError, AttributeError):
+            return
         file_id = await user_upload(message.author, url)
         await tag_file(file_id, tags)
 
