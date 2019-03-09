@@ -21,7 +21,7 @@ async def create_file(contents, extension: str) -> int:
                 print(file_path)
             async with aiofiles.open(file_path, 'wb') as file:
                 await file.write(contents)
-            await connection.commit()
+        await connection.commit()
     return id_
 
 
