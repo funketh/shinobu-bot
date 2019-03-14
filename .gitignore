@@ -1,6 +1,7 @@
 data/shinobu.db
+logs/
 
-#PyCharm
+# PyCharm
 .idea/
 
 # Byte-compiled / optimized / DLL files
