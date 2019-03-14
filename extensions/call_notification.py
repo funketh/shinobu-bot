@@ -19,7 +19,7 @@ async def notify_when_voice_join(member: discord.Member, before: discord.VoiceSt
     global last_used
     if (time.time() < last_used + cooldown_time
         or after.channel is None
-        or after.channel.id == (before.channel is None or before.channel.id)
+        or after.channel.id == getattr(before.channel, 'id', None)
         or len(after.channel.members) > 1
         or after.channel.id not in voiceid_to_textid
         ): return
