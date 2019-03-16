@@ -10,6 +10,7 @@ discord-py = {extras = ["voice"],git = "https://github.com/Rapptz/discord.py",re
 aiosqlite = "*"
 aiohttp = "*"
 aiofiles = "*"
+beautifulsoup4 = "*"
 
 [requires]
 python_version = "3.7"
