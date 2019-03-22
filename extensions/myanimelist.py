@@ -1,11 +1,11 @@
 import aiohttp
 import discord
 from discord.ext import commands
-from typing import Optional, Dict
+from typing import Optional
 
+from shinobu import Shinobu
 from utils.bing_search import search, first_match
 from utils.myanimelist_scraper import Anime
-from shinobu import Shinobu
 
 
 async def search_first_mal_id(domain_appendix: str, query: str) -> Optional[int]:
@@ -14,30 +14,6 @@ async def search_first_mal_id(domain_appendix: str, query: str) -> Optional[int]
         match = await first_match(rf'https://myanimelist\.net/{domain_appendix}/(\d+)/[^/]+', search_results)
     if match is not None:
         return int(match.group(1))
-
-
-async def remove_empty_fields(data: Dict):
-    return await remove_empty_items(data.get('fields'))
-
-
-async def remove_empty_items(data: Dict):
-    for key, value in data.items():
-        if key in ('', None) or value in ('', None):
-            del data[key]
-
-
-async def fixed_embed_from_data(data: Dict) -> discord.Embed:
-    if not data.get('type'):
-        data['type'] = 'rich'
-    if isinstance(data.get('color'), discord.Color):
-        data['color'] = data['color'].value
-    return discord.Embed.from_data(data)
-
-
-async def safe_embed_from_data(data: Dict) -> discord.Embed:
-    await remove_empty_items(data)
-    await remove_empty_fields(data)
-    return await fixed_embed_from_data(data)
 
 
 @commands.cooldown(1, 5, commands.BucketType.user)
@@ -52,42 +28,23 @@ async def anime(ctx: commands.Context, *search_terms: str):
         return await ctx.send("I couldn't find any results.")
 
     embed_msg = await ctx.send("*Getting the information from MyAnimeList.net...*")
-    score_msg = await ctx.send("*Loading scores...*")
+    # score_msg = await ctx.send("*Loading scores...*")
     ctx.typing()
 
     scraper = await Anime.from_id(series_id)
 
-    embed = await safe_embed_from_data({
-        'color': discord.Color.dark_blue(),
-        'author': {
-            'name': scraper.title,
-            # 'url': None,
-            # 'thumbnail': None,
-        },
-        'thumbnail': scraper.thumbnail,
-        'fields': [
-            {
-                'name': 'score',
-                'value': str(scraper.score),
-            },
-            {
-                'name': 'status',
-                'value': scraper.status,
-            },
-        ],
-    })
+    embed = discord.Embed()
+    embed.colour = discord.Colour.dark_blue()
+    embed.set_author(name=scraper.title, url=scraper.url)
+    embed.set_thumbnail(url=scraper.thumbnail)
+    if scraper.score: embed.add_field(name='Score', value=scraper.score)
+    if scraper.status: embed.add_field(name='Status', value=scraper.status)
     # Setting up the embed with all the dictionary values
     # embed = discord.Embed(colour=discord.Colour.dark_blue())
     # embed.set_author(name=scraper.title,
     #                  # url=scraper.url,
     #                  # icon_url=MAL_ICON
     #                  )
-    # if scraper.thumbnail is not None:
-    #     embed.set_thumbnail(url=scraper.thumbnail)
-    # if scraper.score is not None:
-    #     embed.add_field(name="Score", value=f"{scraper.score}")
-    # if scraper.status is not None:
-    #     embed.add_field(name="Status", value=f"{scraper.status}")
 
     # embed.add_field(name="Episodes", value=f"{scraper.get('episodes')}  ({scraper.get('duration')})")
     # studios = ', '.join([s['name'] for s in scraper['studios']])
