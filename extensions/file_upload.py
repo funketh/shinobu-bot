@@ -36,7 +36,7 @@ async def image_of_the_day(message: discord.Message):
             re.compile("compensation.*?:", re.IGNORECASE): {'RndImg', 'Compensation'},
             re.compile("bonus.*?:", re.IGNORECASE): {'RndImg', 'Bonus'},
         }
-        tags = set.union(*(tags for pattern, tags in pattern_tags.items() if pattern.search(message.content)))
+        tags = set().union(*(tags for pattern, tags in pattern_tags.items() if pattern.search(message.content)))
         if len(tags) == 0:
             return
 
