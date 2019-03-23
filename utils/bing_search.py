@@ -22,7 +22,7 @@ async def search(query, session: aiohttp.ClientSession, delay=0.5):
 async def result_pages(session: aiohttp.ClientSession, url):
     while True:
         async with session.get(url) as resp:
-            page = BeautifulSoup(await resp.text(), 'lxml')
+            page = BeautifulSoup(await resp.text(), 'html.parser')
         if page.find(id='b_results'):
             yield page
         # Next page of search results
