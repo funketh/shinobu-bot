@@ -17,8 +17,8 @@ async def create_file(contents, extension: str) -> int:
             file_path = await make_file_path(id_, extension)
             if os.path.exists(file_path):
                 print(file_path)
-            async with aiofiles.open(file_path, 'wb') as file:
-                await file.write(contents)
+            with open(file_path, 'wb') as file:
+                file.write(contents)
         await connection.commit()
     return id_
 
