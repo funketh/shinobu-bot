@@ -1,7 +1,5 @@
-import os
-
-import aiofiles
 import aiosqlite
+import os
 from typing import Set
 
 from CONSTANTS import DB_PATH, FILE_ROOT
