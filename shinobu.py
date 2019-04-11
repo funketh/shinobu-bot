@@ -1,7 +1,7 @@
 import aiosqlite
 import discord
 import logging
-from discord.ext.commands import Bot, Context
+from discord.ext.commands import Bot, Context, ExtensionNotLoaded
 
 from CONSTANTS import DB_PATH
 
@@ -14,21 +14,13 @@ async def extension_modules():
 
 
 class Shinobu(Bot):
-    async def load_all_extensions(self):
-        async for ext in extension_modules():
-            self.load_extension(ext)
-
-    async def _unload_all_extensions(self):
-        async for ext in extension_modules():
-            self.unload_extension(ext)
-
     async def reload_all_extensions(self):
-        await self._unload_all_extensions()
-        await self.load_all_extensions()
+        async for ext in extension_modules():
+            try:
+                self.reload_extension(ext)
+            except ExtensionNotLoaded:
+                self.load_extension(ext)
 
     async def on_ready(self):
-        await self.load_all_extensions()
+        await self.reload_all_extensions()
         logging.info('Logged on as {0}!'.format(self.user))
-
-    async def on_command_error(self, context: Context, exception: Exception):
-        logging.exception(exception)
