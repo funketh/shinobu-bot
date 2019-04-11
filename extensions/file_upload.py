@@ -16,13 +16,10 @@ async def download(url: str) -> int:
             return await files.create_file(await response.read(), guess_extension(response.content_type) or '')
 
 
-async def user_upload(user: discord.User, url: str) -> int:
-    return await download(url)
-
-
 @commands.command(name='upload', aliases=['up'])
-async def upload_cmd(ctx: commands.Context):
-    await user_upload(ctx.author, ctx.message.attachments[0].proxy_url)
+async def upload_cmd(ctx: commands.Context, *tags: str):
+    file_id = await download(ctx.message.attachments[0].proxy_url)
+    await tag_file(file_id, tags)
 
 
 def setup(bot: Shinobu):
