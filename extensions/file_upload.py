@@ -1,12 +1,9 @@
 import aiohttp
-import discord
-import re
 from discord.ext import commands
 from mimetypes import guess_extension
-from typing import Set
 
 from shinobu import Shinobu
-from utils import files, checks
+from utils import files
 from utils.files import tag_file
 
 
