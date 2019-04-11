@@ -1,6 +1,4 @@
 import os
-
-import aiofiles
 import aiosqlite
 from typing import Set
 
