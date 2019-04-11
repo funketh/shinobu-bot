@@ -1,6 +1,7 @@
 Pipfile.lock
 data/shinobu.db
 logs/
+files/
 
 # PyCharm
 .idea/
