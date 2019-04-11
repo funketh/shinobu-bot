@@ -1,6 +1,6 @@
-import os
 import aiosqlite
-from typing import Set
+import os
+from typing import Iterable
 
 from CONSTANTS import DB_PATH, FILE_ROOT
 
@@ -23,7 +23,7 @@ async def create_file(contents, extension: str) -> int:
     return id_
 
 
-async def tag_file(file_id: int, tags: Set[str] = None):
+async def tag_file(file_id: int, tags: Iterable[str] = None):
     tags = tags or set()
     async with aiosqlite.connect(DB_PATH) as connection:
         async with connection.cursor() as cursor:
