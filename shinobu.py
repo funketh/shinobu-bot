@@ -20,4 +20,4 @@ class Shinobu(Bot):
 
     async def on_ready(self):
         await self.reload_all_extensions()
-        logging.info('Logged on as {0}!'.format(self.user))
+        logging.info(f'Logged on as {self.user}!')
