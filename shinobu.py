@@ -1,16 +1,13 @@
-import aiosqlite
-import discord
 import logging
-from discord.ext.commands import Bot, Context, ExtensionNotLoaded
-
-from CONSTANTS import DB_PATH
+import os
+from discord.ext.commands import Bot, ExtensionNotLoaded
 
 
 async def extension_modules():
-    async with aiosqlite.connect(DB_PATH) as db:
-        async with db.execute('SELECT module_path FROM extension WHERE active=1') as cursor:
-            async for row in cursor:
-                yield row[0]
+    ext = 'extensions'
+    for file_name in os.listdir(ext):
+        if file_name.endswith('.py'):
+            yield f'{ext}.{file_name}'
 
 
 class Shinobu(Bot):
