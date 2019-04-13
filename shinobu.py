@@ -7,7 +7,7 @@ async def extension_modules():
     ext = 'extensions'
     for file_name in os.listdir(ext):
         if file_name.endswith('.py'):
-            yield f'{ext}.{file_name}'
+            yield f'{ext}.{file_name[:-3]}'
 
 
 class Shinobu(Bot):
