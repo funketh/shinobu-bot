@@ -1,2 +1,2 @@
-DB_PATH = 'data/shinobu.db'
+DB_PATH = 'shinobu.db'
 CMD_PREFIX = '.'
