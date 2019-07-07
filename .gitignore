@@ -1,6 +1,6 @@
 TOKEN
 Pipfile.lock
-data/shinobu.db
+shinobu.db
 logs/
 
 # PyCharm
