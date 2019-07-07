@@ -7,7 +7,6 @@ verify_ssl = true
 
 [packages]
 aiohttp = "*"
-beautifulsoup4 = "*"
 discord-py = {extras = ["voice"],version = "*"}
 
 [requires]
