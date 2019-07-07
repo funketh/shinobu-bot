@@ -11,12 +11,12 @@ class CallNotification(commands.Cog):
     def __init__(self):
         self.COOLDOWN_TIME = 5
         self.last_used = 0
-        db = database.connect()
-        with db:
-            self.voiceid_to_textid = {
-                row['voice_id']: row['text_id'] for row in
-                db.execute('SELECT voice_id, text_id FROM voice_to_text')
-            }
+        self.voiceid_to_textid = {
+            row['voice_id']: row['text_id']
+            for row in database.connect().execute(
+                'SELECT voice_id, text_id FROM voice_to_text'
+            )
+        }
 
     @commands.Cog.listener()
     async def on_voice_state_update(self, member: discord.Member,
