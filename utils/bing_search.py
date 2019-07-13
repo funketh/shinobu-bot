@@ -10,7 +10,7 @@ import aiohttp
 _BASE_URL = 'https://www.bing.com'
 
 
-async def search(query, session: aiohttp.ClientSession, delay=0.5):
+async def search(query, session: aiohttp.ClientSession, delay=1):
     url = _BASE_URL + f'/search?q={quote_plus(query)}'
     async for page in result_pages(session, url):
         for match in re.finditer(r'<h2>.+?href="(.+?)"', page):
