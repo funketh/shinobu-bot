@@ -15,6 +15,8 @@ class Economy(commands.Cog):
         self.bot = bot
         self.passive_income.start()
         self.birthday.start()
+
+    async def on_ready(self):
         await self.birthday.coro()
 
     def cog_unload(self):
