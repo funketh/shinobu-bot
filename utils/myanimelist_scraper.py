@@ -2,21 +2,14 @@ import aiohttp
 import logging
 import re
 
+from utils.decorators import lazy_property
+
+
 async def get_page(url):
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as response:
             return await response.text()
 
-def lazy_property(func):
-    attr_name = '_lazy_' + func.__name__
-
-    @property
-    def _lazy_property(self):
-        if not hasattr(self, attr_name):
-            setattr(self, attr_name, func(self))
-        return getattr(self, attr_name)
-
-    return _lazy_property
 
 class _BaseScraper:
     def __init__(self, page: str, url: str):
