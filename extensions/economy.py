@@ -32,12 +32,12 @@ class Economy(commands.Cog):
     async def birthday(self):
         db = database.connect()
         with db:
-            for user in db.execute("SELECT * FROM user WHERE birthday == DATE('now', 'localtime')").fetchall():
+            for user_row in db.execute("SELECT * FROM user WHERE birthday == DATE('now', 'localtime')").fetchall():
                 db.execute('UPDATE user SET balance=balance+100, birthday=? WHERE id=?',
-                           [add_years(user['birthday'], 1), user['id']])
-                await self.bot.get_user(user['id']).send(
-                    f'🎉🎉🎉 Happy Birthday! 🎉🎉🎉\nAs a present, you get 100{CURRENCY}!')
-                logger.info(f'gifted 100 to {user["name"]} as a birthday present!')
+                           [add_years(user_row['birthday'], 1), user_row['id']])
+                user: discord.User = await self.bot.get_user(user_row['id'])
+                await user.send(f'🎉🎉🎉 Happy Birthday! 🎉🎉🎉\nAs a present, you get 100{CURRENCY}!')
+                logger.info(f'gifted 100 to {user.name} as a birthday present!')
 
     @commands.command(name='withdraw', aliases=['w'])
     async def withdraw_income_cmd(self, ctx: commands.Context):
