@@ -1,9 +1,9 @@
 import math
 import sqlite3
 import random
+from utils.database import DB
 from typing import Tuple, Optional, NamedTuple
 
-DB = sqlite3.Connection
 
 CURRENT_PREDICATE = "((pack.start_date <= CURRENT_DATE) " \
                     " AND (pack.end_date IS NULL OR pack.end_date >= CURRENT_DATE))"

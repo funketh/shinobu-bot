@@ -8,6 +8,7 @@ verify_ssl = true
 [packages]
 aiohttp = "*"
 discord-py = {extras = ["voice"],version = "*"}
+fuzzywuzzy = {extras = ["speedup"],version = "*"}
 
 [requires]
 python_version = "3.7"

@@ -1,6 +1,7 @@
 import discord
 import logging
 from discord.ext import commands, tasks
+from typing import Optional
 
 from CONSTANTS import CURRENCY
 from shinobu import Shinobu
@@ -49,7 +50,7 @@ class Economy(commands.Cog):
         await inform(ctx, f'Withdrew {amount}{CURRENCY}')
 
     @commands.command(name='balance', aliases=['bl'])
-    async def balance_cmd(self, ctx: commands.Context, user: discord.User = None):
+    async def balance_cmd(self, ctx: commands.Context, user: Optional[discord.User] = None):
         """Get a user's balance"""
         user = user or ctx.author
         db = database.connect()
