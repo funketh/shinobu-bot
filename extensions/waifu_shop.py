@@ -65,7 +65,7 @@ class WaifuShop(commands.Cog):
         """Get more information on one of your waifus"""
         db = database.connect()
         waifus = list_waifus(db, ctx.author.id)
-        chosen_name: str = process.extractOne(' '.join(search_terms), (w['name'] for w in waifus))[1]
+        chosen_name: str = process.extractOne(' '.join(search_terms), (w['name'] for w in waifus))[0]
         waifu = next(w for w in waifus if w['name'] == chosen_name)
         await ctx.send(embed=waifu_embed(name=waifu['name'], series=waifu['series'], image_url=waifu['image_url'],
                                          rarity_name=waifu['rarity.name'], rarity_color=waifu['rarity.colour']))
@@ -76,7 +76,7 @@ class WaifuShop(commands.Cog):
         db = database.connect()
         with db:
             waifus = list_waifus(db, ctx.author.id)
-            chosen_name: str = process.extractOne(' '.join(search_terms), (w['name'] for w in waifus))[1]
+            chosen_name: str = process.extractOne(' '.join(search_terms), (w['name'] for w in waifus))[0]
             waifu = next(w for w in waifus if w['name'] == chosen_name)
             await ctx.send('Do you really want to get a refund for this waifu? (React with 👍 or 👎)',
                            embed=waifu_embed(name=waifu['name'], series=waifu['series'], image_url=waifu['image_url'],
@@ -110,8 +110,8 @@ def list_waifus(db: DB, user_id: int) -> List[sqlite3.Row]:
 
 
 def waifu_embed(name, series, image_url, rarity_name, rarity_color):
-    embed = discord.Embed(color=rarity_color, title=name,
-                          description=f"**{rarity_name}** [{series}]")
+    embed = discord.Embed(color=rarity_color, title=f'{name} [{series}]',
+                          description=f"**{rarity_name}**")
     if image_url:
         embed.set_image(url=image_url)
     return embed
