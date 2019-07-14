@@ -22,7 +22,7 @@ class WaifuShop(commands.Cog):
         embed = discord.Embed(colour=discord.Colour.gold())
         for p in packs:
             end_date_str = f" (Available until {p['end_date']})" if p['end_date'] else ''
-            embed.add_field(name=f"{p['name']} - {p['cost']}{CURRENCY}{end_date_str}",
+            embed.add_field(name=f"{p['name']} - {p['cost']} {CURRENCY}{end_date_str}",
                             value=p['description'], inline=False)
         await ctx.send(embed=embed)
 
@@ -45,7 +45,7 @@ class WaifuShop(commands.Cog):
                 embed.add_field(name='Duplicate', value='Your waifu was upgraded!')
             else:
                 embed.add_field(name='Duplicate',
-                                value=f'Your duplicate waifu was refunded for {receipt.refund}{CURRENCY}!')
+                                value=f'Your duplicate waifu was refunded for {receipt.refund} {CURRENCY}!')
         await ctx.send(embed=embed)
 
     @commands.command(name='waifu_list', aliases=['wl'])
@@ -54,7 +54,6 @@ class WaifuShop(commands.Cog):
         user = user or ctx.author
         db = database.connect()
         waifus = list_waifus(db, user.id)
-        waifus.sort(key=lambda w: (w['rarity.name'], w['name']))
         padding = max(len(w['name']) for w in waifus)
         waifu_str = '\n'.join(f"{w['name']:<{padding}} - {w['rarity.name']}" for w in waifus)
         waifu_codeblock = f'```md\n{waifu_str}\n```'
@@ -92,7 +91,7 @@ class WaifuShop(commands.Cog):
                 refund_amount = refund(db, ctx.author.id, waifu['rarity.value'], 1)
                 db.execute('DELETE FROM waifu WHERE id=?', [waifu['waifu.id']])
                 add_money(db, ctx.author.id, refund_amount)
-                await ctx.send(f"Successfully refunded {waifu['name']}"
+                await ctx.send(f"Successfully refunded {waifu['name']} "
                                f"for {refund_amount} {CURRENCY}")
 
 
