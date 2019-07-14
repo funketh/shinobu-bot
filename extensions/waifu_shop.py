@@ -84,7 +84,7 @@ class WaifuShop(commands.Cog):
             try:
                 reaction, user = await ctx.bot.wait_for('reaction_add', timeout=60.0,
                                                         check=lambda r, u: u == ctx.author and str(r.emoji) in '👍👎')
-                if reaction == '👎':
+                if reaction.emoji == '👎':
                     raise ValueError
             except (asyncio.TimeoutError, ValueError):
                 await ctx.send('Cancelled refund.')
