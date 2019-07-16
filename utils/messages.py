@@ -21,7 +21,8 @@ error = partial(send_embed, discord.Color.red())
 async def confirm(bot: discord.Client, message: discord.Message, user: discord.User,
                   yes: str = '👍', no: str = '👎', timeout: int = 60) -> bool:
     def check(r, u):
-        return r.message == message and u == user and str(r.emoji) in (yes, no)
+        return r.message.id == message.id and u == user and str(r.emoji) in (yes, no)
+
     try:
         reaction, _ = await bot.wait_for('reaction_add', timeout=timeout, check=check)
     except asyncio.TimeoutError:
@@ -32,7 +33,7 @@ async def confirm(bot: discord.Client, message: discord.Message, user: discord.U
 async def confirm_multiuser(bot: discord.Client, message: discord.Message, users: List[discord.User],
                             yes: str = '👍', no: str = '👎', timeout: int = 60) -> bool:
     def check(r, u):
-        return r.message == message and u in users and str(r.emoji) in (yes, no)
+        return r.message.id == message.id and u in users and str(r.emoji) in (yes, no)
 
     while len(users) > 0:
         try:

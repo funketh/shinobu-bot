@@ -1,9 +1,10 @@
 import sqlite3
+from collections import defaultdict
 
 import discord
 from discord.ext import commands
 from fuzzywuzzy import process
-from typing import Optional, List, Generator, Dict
+from typing import Optional, List, Generator, Dict, DefaultDict
 
 from CONSTANTS import CURRENCY, CMD_PREFIX
 from shinobu import Shinobu
@@ -16,7 +17,7 @@ from utils.shop import buy_pack, CURRENT_PREDICATE, NotEnoughMoney, UnknownPackN
 class WaifuShop(commands.Cog):
 
     def __init__(self):
-        self.trade_offers: Dict[discord.User, Dict[discord.User, sqlite3.Row]] = {}
+        self.trade_offers: DefaultDict[discord.User.id, Dict[discord.User, sqlite3.Row]] = defaultdict(dict)
 
     @commands.command(name='pack_list', aliases=['pl'])
     async def list_packs_cmd(self, ctx: commands.Context):
@@ -122,14 +123,17 @@ class WaifuShop(commands.Cog):
                         try:
                             db.executemany(
                                 'UPDATE waifu SET user=? WHERE id=?',
-                                [(ctx.author, counter_offer['waifu.id']), (trade_partner, waifu['waifu.id'])]
+                                [(ctx.author.id, counter_offer['waifu.id']), (trade_partner.id, waifu['waifu.id'])]
                             )
                         except sqlite3.IntegrityError:
-                            await error(ctx, "You can't trade someone a waifu that he already owns")
+                            return await error(ctx, "You can't trade someone a waifu that he already owns")
+                        await inform('The trade was successful!')
+                        del self.trade_offers[ctx.author][trade_partner]
+                        del self.trade_offers[trade_partner][ctx.author]
                 else:
-                    await error(ctx, 'Cancelled trade.')
+                    return await error(ctx, 'Cancelled trade.')
         else:
-            await error(ctx, 'Cancelled trade.')
+            return await error(ctx, 'Cancelled trade.')
 
 
 def find_waifus(db: DB, user_id: int, query: str) -> Generator[sqlite3.Row, None, None]:
