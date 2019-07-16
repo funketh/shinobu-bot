@@ -1,19 +1,23 @@
-import asyncio
 import sqlite3
 
 import discord
 from discord.ext import commands
 from fuzzywuzzy import process
-from typing import Optional, List
+from typing import Optional, List, Generator, Dict
 
 from CONSTANTS import CURRENCY, CMD_PREFIX
 from shinobu import Shinobu
 from utils import database
 from utils.database import DB
+from utils.messages import confirm, confirm_multiuser, error, inform
 from utils.shop import buy_pack, CURRENT_PREDICATE, NotEnoughMoney, UnknownPackName, refund, add_money
 
 
 class WaifuShop(commands.Cog):
+
+    def __init__(self):
+        self.trade_offers: Dict[discord.User, Dict[discord.User, sqlite3.Row]] = {}
+
     @commands.command(name='pack_list', aliases=['pl'])
     async def list_packs_cmd(self, ctx: commands.Context):
         """Lists all currently available packs"""
@@ -33,10 +37,10 @@ class WaifuShop(commands.Cog):
         try:
             receipt = await buy_pack(db, ctx.author.id, pack_name)
         except NotEnoughMoney:
-            return await ctx.send("You don't have enough money to buy that pack!")
+            return await error(ctx, "You don't have enough money to buy that pack!")
         except UnknownPackName:
-            return await ctx.send(f"Unknown pack name. Type `{CMD_PREFIX}{self.list_packs_cmd.name}` "
-                                  f"for a list of available packs.")
+            return await error(ctx, f"Unknown pack name. Type `{CMD_PREFIX}{self.list_packs_cmd.name}` "
+                                    f"for a list of available packs.")
         embed = waifu_embed(name=receipt.character['name'], series=receipt.character['series'],
                             image_url=receipt.character['image_url'], rarity_name=receipt.rarity['name'],
                             rarity_color=receipt.rarity['colour'])
@@ -63,9 +67,10 @@ class WaifuShop(commands.Cog):
     async def waifu_info_cmd(self, ctx: commands.Context, *search_terms: str):
         """Get more information on one of your waifus"""
         db = database.connect()
-        waifus = list_waifus(db, ctx.author.id)
-        chosen_name: str = process.extractOne(' '.join(search_terms), (w['name'] for w in waifus))[0]
-        waifu = next(w for w in waifus if w['name'] == chosen_name)
+        try:
+            waifu = next(find_waifus(db, ctx.author.id, ' '.join(search_terms)))
+        except StopIteration:
+            return await error(ctx, "You don't have any waifus!")
         await ctx.send(embed=waifu_embed(name=waifu['name'], series=waifu['series'], image_url=waifu['image_url'],
                                          rarity_name=waifu['rarity.name'], rarity_color=waifu['rarity.colour']))
 
@@ -74,25 +79,70 @@ class WaifuShop(commands.Cog):
         """Get a refund for one of your waifus"""
         db = database.connect()
         with db:
-            waifus = list_waifus(db, ctx.author.id)
-            chosen_name: str = process.extractOne(' '.join(search_terms), (w['name'] for w in waifus))[0]
-            waifu = next(w for w in waifus if w['name'] == chosen_name)
-            await ctx.send('Do you really want to get a refund for this waifu? (React with 👍 or 👎)',
-                           embed=waifu_embed(name=waifu['name'], series=waifu['series'], image_url=waifu['image_url'],
-                                             rarity_name=waifu['rarity.name'], rarity_color=waifu['rarity.colour']))
             try:
-                reaction, user = await ctx.bot.wait_for('reaction_add', timeout=60.0,
-                                                        check=lambda r, u: u == ctx.author and str(r.emoji) in '👍👎')
-                if reaction.emoji == '👎':
-                    raise ValueError
-            except (asyncio.TimeoutError, ValueError):
-                await ctx.send('Cancelled refund.')
-            else:
+                waifu = next(find_waifus(db, ctx.author.id, ' '.join(search_terms)))
+            except StopIteration:
+                return await error(ctx, "You don't have any waifus!")
+            embed = waifu_embed(name=waifu['name'], series=waifu['series'], image_url=waifu['image_url'],
+                                rarity_name=waifu['rarity.name'], rarity_color=waifu['rarity.colour'])
+            confirmation_msg = await ctx.send(
+                'Do you really want to get a refund for this waifu? (React with 👍 or 👎)', embed=embed)
+            if await confirm(ctx.bot, confirmation_msg, ctx.author):
                 refund_amount = refund(db, ctx.author.id, waifu['rarity.value'], 1)
                 db.execute('DELETE FROM waifu WHERE id=?', [waifu['waifu.id']])
                 add_money(db, ctx.author.id, refund_amount)
-                await ctx.send(f"Successfully refunded {waifu['name']} "
-                               f"for {refund_amount} {CURRENCY}")
+                await inform(ctx, f"Successfully refunded {waifu['name']} for {refund_amount} {CURRENCY}")
+            else:
+                await error(ctx, 'Cancelled refund.')
+
+    @commands.command(name='waifu_trade', aliases=['wt', 'trade'])
+    async def waifu_trade_cmd(self, ctx: commands.Context, trade_partner: discord.User, *search_terms):
+        """Trade one of your waifus with the specified user"""
+        db = database.connect()
+        try:
+            waifu = next(find_waifus(db, ctx.author.id, ' '.join(search_terms)))
+        except StopIteration:
+            return await error(ctx, "You don't have any waifus!")
+        confirmation_msg = await ctx.send(
+            f'Do you really want to offer this waifu to {trade_partner.mention}? (React with 👍 or 👎)',
+            embed=waifu_embed(name=waifu['name'], series=waifu['series'], image_url=waifu['image_url'],
+                              rarity_name=waifu['rarity.name'], rarity_color=waifu['rarity.colour'])
+        )
+        if await confirm(ctx.bot, confirmation_msg, ctx.author):
+            self.trade_offers[ctx.author][trade_partner] = waifu
+            await inform(ctx, 'Confirmed offer.')
+            counter_offer = self.trade_offers.get(trade_partner, {}).get(ctx.author)
+            if counter_offer is not None:
+                final_confirmation_msg = await ctx.send(
+                    f"Establishing trade: {trade_partner.mention}'s {counter_offer['name']} [{counter_offer['series']}]"
+                    f" <==> {ctx.author.mention}'s {waifu['name']} [{waifu['series']}]\n(React with 👍 or 👎)"
+                )
+                if await confirm_multiuser(ctx.bot, final_confirmation_msg, [ctx.author, trade_partner]):
+                    with db:
+                        try:
+                            db.executemany(
+                                'UPDATE waifu SET user=? WHERE id=?',
+                                [(ctx.author, counter_offer['waifu.id']), (trade_partner, waifu['waifu.id'])]
+                            )
+                        except sqlite3.IntegrityError:
+                            await error(ctx, "You can't trade someone a waifu that he already owns")
+                else:
+                    await error(ctx, 'Cancelled trade.')
+        else:
+            await error(ctx, 'Cancelled trade.')
+
+
+def find_waifus(db: DB, user_id: int, query: str) -> Generator[sqlite3.Row, None, None]:
+    waifus = list_waifus(db, user_id)
+    matches = process.extract(query, (w['name'] for w in waifus), limit=None)
+    for m in matches:
+        for i, w in enumerate(waifus):
+            if w['name'] == m[0]:
+                found_i = i
+                break
+        else:
+            continue
+        yield waifus.pop(found_i)
 
 
 def list_waifus(db: DB, user_id: int) -> List[sqlite3.Row]:
