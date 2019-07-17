@@ -23,7 +23,6 @@ class CallNotification(commands.Cog):
                                     before: discord.VoiceState,
                                     after: discord.VoiceState):
         """Notifies certain channels when someone starts a call"""
-        print('activated')
         if (time.time() < self.last_used + self.COOLDOWN_TIME
             or after.channel is None
             or after.channel.id == getattr(before.channel, 'id', None)
