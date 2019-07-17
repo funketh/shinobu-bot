@@ -127,7 +127,7 @@ class WaifuShop(commands.Cog):
                             )
                         except sqlite3.IntegrityError:
                             return await error(ctx, "You can't trade someone a waifu that he already owns")
-                        await inform('The trade was successful!')
+                        await inform(ctx, 'The trade was successful!')
                         del self.trade_offers[ctx.author][trade_partner]
                         del self.trade_offers[trade_partner][ctx.author]
                 else:
