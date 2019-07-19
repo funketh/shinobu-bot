@@ -1,6 +1,6 @@
 import sqlite3
 
-from CONSTANTS import DB_PATH
+from data.CONSTANTS import DB_PATH
 
 DB = sqlite3.Connection
 

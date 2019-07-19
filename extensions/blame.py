@@ -1,12 +1,13 @@
 import discord
 from discord.ext import commands
 
-import shinobu
+from api import shinobu
+from api.my_context import Context
 
 
 class Blame(commands.Cog):
     @commands.command(name='blame')
-    async def blame_cmd(self, ctx: commands.Context, user: discord.User):
+    async def blame_cmd(self, ctx: Context, user: discord.User):
         await ctx.send(f'Blame {user.mention} for everything!')
 
 

@@ -3,14 +3,16 @@ import discord
 from discord.ext import commands
 from typing import Optional
 
-from shinobu import Shinobu
+from api.my_context import Context
+from api.shinobu import Shinobu
 from utils.bing_search import search, first_match
 from utils.myanimelist_scraper import Anime
+
 
 class MyAnimeList(commands.Cog):
     @commands.cooldown(1, 5, commands.BucketType.user)
     @commands.command(name='anime', aliases=['ani', 'a'])
-    async def anime_cmd(self, ctx: commands.Context, *search_terms: str):
+    async def anime_cmd(self, ctx: Context, *search_terms: str):
         """Get information about an anime using myanimelist.net."""
         if len(search_terms) == 0:
             return await ctx.send('Please specify a search query.')
@@ -41,6 +43,7 @@ async def search_first_mal_id(domain_appendix: str, query: str) -> Optional[int]
         match = await first_match(rf'https://myanimelist\.net/{domain_appendix}/(\d+)/[^/]+', search_results)
     if match is not None:
         return int(match.group(1))
+
 
 def setup(bot: Shinobu):
     bot.add_cog(MyAnimeList())

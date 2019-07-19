@@ -4,8 +4,11 @@ import inspect
 from functools import wraps, partial
 from typing import Callable, TypeVar, Optional, List, Union
 
+
 RT = TypeVar('RT')
 P = inspect.Parameter
+
+
 def configurable_decorator(decorator: Callable[..., RT]):
     sig = inspect.signature(decorator)
     params: List[P] = list(sig.parameters.values())
@@ -27,6 +30,7 @@ def configurable_decorator(decorator: Callable[..., RT]):
         elif len(args) > 1:
             raise TypeError(f'{decorator.__name__}() takes one callable positional argument but {len(args)} were given')
         return partial(decorator, **kwargs)
+
     return wrapper
 
 

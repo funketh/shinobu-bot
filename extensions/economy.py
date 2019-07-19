@@ -3,10 +3,10 @@ import logging
 from discord.ext import commands, tasks
 from typing import Optional
 
-from CONSTANTS import CURRENCY
-from shinobu import Shinobu
+from api.my_context import Context
+from data.CONSTANTS import CURRENCY
+from api.shinobu import Shinobu
 from utils import database
-from utils.messages import inform
 
 logger = logging.getLogger(__name__)
 
@@ -41,21 +41,21 @@ class Economy(commands.Cog):
                 logger.info(f'gifted 100 to {user.name} as a birthday present!')
 
     @commands.command(name='withdraw', aliases=['w'])
-    async def withdraw_income_cmd(self, ctx: commands.Context):
+    async def withdraw_income_cmd(self, ctx: Context):
         """Withdraw accumulated passive income"""
         db = database.connect()
         with db:
             amount = db.execute('SELECT income FROM user WHERE id=?', [ctx.author.id]).fetchone()[0]
             db.execute('UPDATE user SET balance=balance+?, income=0 WHERE id=?', [amount, ctx.author.id])
-        await inform(ctx, f'Withdrew {amount} {CURRENCY}')
+        await ctx.inform(f'Withdrew {amount} {CURRENCY}')
 
     @commands.command(name='balance', aliases=['bl'])
-    async def balance_cmd(self, ctx: commands.Context, user: Optional[discord.User] = None):
+    async def balance_cmd(self, ctx: Context, user: Optional[discord.User] = None):
         """Get a user's balance"""
         user = user or ctx.author
         db = database.connect()
         balance = db.execute('SELECT balance FROM user WHERE id=?', [user.id]).fetchone()['balance']
-        await inform(ctx, f'{user.mention}\'s balance: {balance} {CURRENCY}')
+        await ctx.inform(f'{user.mention}\'s balance: {balance} {CURRENCY}')
 
 
 def add_years(date_: str, amount: int) -> str:

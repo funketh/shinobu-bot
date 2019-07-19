@@ -3,7 +3,7 @@ import time
 import discord
 from discord.ext import commands
 
-import shinobu
+from api import shinobu
 from utils import database
 
 
