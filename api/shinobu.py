@@ -42,7 +42,7 @@ class Shinobu(commands.Bot):
         logging.info(f'Logged on as {self.user}!')
         await self.update_user_database()
 
-    async def on_command_error(self, ctx: Context, exception):
+    async def on_command_error(self, ctx: Context, exception: Exception):
         cog = ctx.cog
         if self.extra_events.get('on_command_error', None) \
                 or hasattr(ctx.command, 'on_error') \
@@ -53,6 +53,8 @@ class Shinobu(commands.Bot):
             lambda m: m.group(1),
             traceback.format_exception_only(type(exception), exception)[-1]
         ))
+        logging.info(f'Ignoring exception in command {ctx.command}:\n'
+                     + ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)))
 
     async def get_context(self, message, *, cls=Context):
         return await super().get_context(message, cls=cls)

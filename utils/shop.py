@@ -1,8 +1,12 @@
 import math
 import sqlite3
+
+import discord
 import random
+from fuzzywuzzy import process
+
 from utils.database import DB
-from typing import Tuple, Optional, NamedTuple
+from typing import Tuple, Optional, NamedTuple, Generator, List
 
 
 CURRENT_PREDICATE = "((pack.start_date <= CURRENT_DATE) " \
@@ -89,3 +93,37 @@ def refund(db: DB, user_id: int, rarity_val: int, pack_id: int) -> int:
     """, [pack_id, rarity_val]).fetchone()[0])
     add_money(db, user_id, amount)
     return amount
+
+
+def find_waifus(db: DB, user_id: int, query: str) -> Generator[sqlite3.Row, None, None]:
+    waifus = list_waifus(db, user_id)
+    matches = process.extract(query, (w['name'] for w in waifus), limit=None)
+    for m in matches:
+        for i, w in enumerate(waifus):
+            if w['name'] == m[0]:
+                found_i = i
+                break
+        else:
+            continue
+        yield waifus.pop(found_i)
+
+
+def list_waifus(db: DB, user_id: int) -> List[sqlite3.Row]:
+    return db.execute("""
+    SELECT waifu.id AS "waifu.id",
+           character.name, character.image_url, character.series, character.id AS "character.id",
+           rarity.name AS "rarity.name", rarity.colour AS "rarity.colour", rarity.value AS "rarity.value"
+    FROM waifu
+    JOIN character ON character.id = waifu.character
+    JOIN rarity ON rarity.value = waifu.rarity
+    WHERE waifu.user=?
+    ORDER BY rarity.value DESC, character.name ASC
+    """, [user_id]).fetchall()
+
+
+def waifu_embed(name, series, image_url, rarity_name, rarity_color):
+    embed = discord.Embed(color=rarity_color, title=f'{name} [{series}]',
+                          description=f"**{rarity_name}**")
+    if image_url:
+        embed.set_image(url=image_url)
+    return embed

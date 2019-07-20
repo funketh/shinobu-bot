@@ -7,24 +7,30 @@ from typing import Optional, List, Union
 
 
 class Context(commands.Context):
-    async def send_embed(self, color: Union[Color, int], title: Optional[str] = None,
+    async def send_embed(self, color: Union[Color, int], description: Optional[str] = None,
                          content: Optional[str] = None, **kwargs):
-        if title is not None:
-            kwargs['title'] = title
-        if len(kwargs['title']) > 256:
-            raise ValueError('title must be 256 or fewer in length')
+        if description is not None:
+            kwargs['description'] = description
+        if len(kwargs['description']) > 256:
+            raise ValueError('Title must be 256 or fewer in length')
         return await self.send(content, embed=discord.Embed(color=color, **kwargs))
 
-    async def inform(self, title: Optional[str] = None, content: Optional[str] = None, **kwargs):
-        return await self.send_embed(discord.Color.green(), title, content, **kwargs)
+    async def info(self, description: Optional[str] = None, content: Optional[str] = None, **kwargs):
+        return await self.send_embed(discord.Color.green(), description, content, **kwargs)
 
-    async def error(self, title: Optional[str] = None, content: Optional[str] = None, **kwargs):
-        return await self.send_embed(discord.Color.red(), title, content, **kwargs)
+    async def warn(self, description: Optional[str] = None, content: Optional[str] = None, **kwargs):
+        return await self.send_embed(discord.Color.orange(), description, content, **kwargs)
+
+    async def error(self, description: Optional[str] = None, content: Optional[str] = None, **kwargs):
+        return await self.send_embed(discord.Color.red(), description, content, **kwargs)
 
     async def confirm(self, message: discord.Message, user: Optional[discord.User] = None,
                       yes: str = '👍', no: str = '👎', timeout: int = 60) -> bool:
         user = user or self.author
+        await message.add_reaction(yes)
+        await message.add_reaction(no)
         check = lambda r, u: r.message.id == message.id and u == user and str(r.emoji) in (yes, no)
+
         try:
             reaction, _ = await self.bot.wait_for('reaction_add', timeout=timeout, check=check)
         except asyncio.TimeoutError:
@@ -33,6 +39,8 @@ class Context(commands.Context):
 
     async def confirm_multiuser(self, message: discord.Message, users: List[discord.User],
                                 yes: str = '👍', no: str = '👎', timeout: int = 60) -> bool:
+        await message.add_reaction(yes)
+        await message.add_reaction(no)
         check = lambda r, u: r.message.id == message.id and u in users and str(r.emoji) in (yes, no)
 
         while len(users) > 0:

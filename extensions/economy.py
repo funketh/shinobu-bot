@@ -40,22 +40,22 @@ class Economy(commands.Cog):
                 await user.send(f'🎉🎉🎉 Happy Birthday! 🎉🎉🎉\nAs a present, you get 100 {CURRENCY}!')
                 logger.info(f'gifted 100 to {user.name} as a birthday present!')
 
-    @commands.command(name='withdraw', aliases=['w'])
-    async def withdraw_income_cmd(self, ctx: Context):
+    @commands.command(aliases=['w'])
+    async def withdraw(self, ctx: Context):
         """Withdraw accumulated passive income"""
         db = database.connect()
         with db:
             amount = db.execute('SELECT income FROM user WHERE id=?', [ctx.author.id]).fetchone()[0]
             db.execute('UPDATE user SET balance=balance+?, income=0 WHERE id=?', [amount, ctx.author.id])
-        await ctx.inform(f'Withdrew {amount} {CURRENCY}')
+        await ctx.info(f'Withdrew {amount} {CURRENCY}')
 
-    @commands.command(name='balance', aliases=['bl'])
-    async def balance_cmd(self, ctx: Context, user: Optional[discord.User] = None):
+    @commands.command(aliases=['bl'])
+    async def balance(self, ctx: Context, user: Optional[discord.User] = None):
         """Get a user's balance"""
         user = user or ctx.author
         db = database.connect()
         balance = db.execute('SELECT balance FROM user WHERE id=?', [user.id]).fetchone()['balance']
-        await ctx.inform(f'{user.mention}\'s balance: {balance} {CURRENCY}')
+        await ctx.info(f'{user.mention}\'s balance: {balance} {CURRENCY}')
 
 
 def add_years(date_: str, amount: int) -> str:

@@ -18,8 +18,8 @@ class Tags(commands.Cog):
             if value is not None:
                 await message.channel.send(value[0])
 
-    @commands.command(name='tag')
-    async def tag_cmd(self, ctx: Context, key: str, message: Optional[discord.Message] = None):
+    @commands.command()
+    async def tag(self, ctx: Context, key: str, message: Optional[discord.Message] = None):
         """Register a message under a key (access it by typing !<key>)"""
         message = message or (await ctx.history(limit=2).flatten())[1]
         db = database.connect()
@@ -28,7 +28,7 @@ class Tags(commands.Cog):
                 db.execute('INSERT INTO tag(key, value) VALUES(?, ?)', [key, message.content])
             except sqlite3.IntegrityError:
                 return await ctx.error('Tag already exists.')
-        await ctx.inform(f'Successfully registered {key}!')
+        await ctx.info(f'Successfully registered {key}!')
 
 
 def setup(bot: Shinobu):

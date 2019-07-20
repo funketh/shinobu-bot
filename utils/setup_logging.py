@@ -1,6 +1,7 @@
 import logging
 import logging.handlers
 
+
 def setup_logging():
     file_handler = logging.handlers.TimedRotatingFileHandler('logs/debug.log', when='midnight', backupCount=7)
     file_handler.setLevel(logging.DEBUG)

@@ -11,8 +11,8 @@ from utils.myanimelist_scraper import Anime
 
 class MyAnimeList(commands.Cog):
     @commands.cooldown(1, 5, commands.BucketType.user)
-    @commands.command(name='anime', aliases=['ani', 'a'])
-    async def anime_cmd(self, ctx: Context, *search_terms: str):
+    @commands.command(aliases=['a'])
+    async def anime(self, ctx: Context, *search_terms: str):
         """Get information about an anime using myanimelist.net."""
         if len(search_terms) == 0:
             return await ctx.send('Please specify a search query.')
@@ -41,8 +41,7 @@ async def search_first_mal_id(domain_appendix: str, query: str) -> Optional[int]
     async with aiohttp.ClientSession() as session:
         search_results = search(f'site:myanimelist.net/{domain_appendix} {query}', session)
         match = await first_match(rf'https://myanimelist\.net/{domain_appendix}/(\d+)/[^/]+', search_results)
-    if match is not None:
-        return int(match.group(1))
+    return int(match.group(1)) if match is not None else None
 
 
 def setup(bot: Shinobu):
