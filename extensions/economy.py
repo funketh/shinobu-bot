@@ -40,8 +40,8 @@ class Economy(commands.Cog):
                 await user.send(f'🎉🎉🎉 Happy Birthday! 🎉🎉🎉\nAs a present, you get 100 {CURRENCY}!')
                 logger.info(f'gifted 100 to {user.name} as a birthday present!')
 
-    @commands.command(aliases=['w'])
-    async def withdraw(self, ctx: Context):
+    @commands.command(aliases=['p'])
+    async def passive_income(self, ctx: Context):
         """Withdraw accumulated passive income"""
         db = database.connect()
         with db:
