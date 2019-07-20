@@ -49,7 +49,7 @@ class Economy(commands.Cog):
             db.execute('UPDATE user SET balance=balance+?, income=0 WHERE id=?', [amount, ctx.author.id])
         await ctx.info(f'Withdrew {amount} {CURRENCY}')
 
-    @commands.command(aliases=['bl'])
+    @commands.command(aliases=['b'])
     async def balance(self, ctx: Context, user: Optional[discord.User] = None):
         """Get a user's balance"""
         user = user or ctx.author
