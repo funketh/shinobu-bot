@@ -16,7 +16,7 @@ from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY
 from utils import database
 from utils.database import DB
-from utils.shop import find_waifus
+from utils.waifus import find_waifus
 
 
 class ConstraintError(ValueError):

@@ -30,12 +30,15 @@ class Receipt(NamedTuple):
 async def buy_pack(db: DB, user_id: int, pack_name: str) -> Receipt:
     with db:
         pack = db.execute(f'SELECT * FROM pack WHERE {CURRENT_PREDICATE} AND name LIKE ?', [pack_name]).fetchone()
-        if pack is None: raise UnknownPackName
+        if pack is None:
+            raise UnknownPackName
         add_money(db, user_id, -pack['cost'])
         char, rarity = pick_from_pack(db, pack['id'])
         old_rarity = give_waifu(db, user_id, char['id'], rarity['value'])
-        gets_refund = old_rarity is not None and rarity['value'] <= old_rarity['value']
-        refund_amount = refund(db, user_id, rarity['value'], pack['id']) if gets_refund else None
+        refund_amount: Optional[int] = None
+        if old_rarity is not None:
+            refunded_rarity_val = max(rarity['value'], old_rarity['value'])
+            refund_amount = refund(db, user_id, refunded_rarity_val, pack['cost'])
         return Receipt(character=char, rarity=rarity, old_rarity=old_rarity, pack=pack, refund=refund_amount)
 
 
@@ -85,12 +88,11 @@ def give_waifu(db: DB, user_id: int, char_id: int, new_rarity_val: int) -> Optio
     return old_rarity
 
 
-def refund(db: DB, user_id: int, rarity_val: int, pack_id: int) -> int:
+def refund(db: DB, user_id: int, rarity_val: int, cost: int) -> int:
     amount = math.ceil(db.execute("""
-    SELECT CAST(value AS FLOAT) / (SELECT MAX(value) FROM rarity)
-           * (SELECT cost FROM pack WHERE id=?)
+    SELECT ? * CAST(value AS FLOAT) / (SELECT MAX(value) FROM rarity)
     AS amount FROM rarity WHERE value=?
-    """, [pack_id, rarity_val]).fetchone()[0])
+    """, [cost, rarity_val]).fetchone()[0])
     add_money(db, user_id, amount)
     return amount
 

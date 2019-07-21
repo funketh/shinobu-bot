@@ -7,7 +7,7 @@ from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY, CMD_PREFIX
 from extensions import waifu_transactions
 from utils import database
-from utils.shop import buy_pack, CURRENT_PREDICATE, NotEnoughMoney, UnknownPackName, refund, add_money, find_waifus, \
+from utils.waifus import buy_pack, CURRENT_PREDICATE, NotEnoughMoney, UnknownPackName, refund, find_waifus, \
     list_waifus, waifu_embed
 
 
@@ -45,11 +45,9 @@ class WaifuShop(commands.Cog):
                             image_url=receipt.character['image_url'], rarity_name=receipt.rarity['name'],
                             rarity_color=receipt.rarity['colour'])
         if receipt.old_rarity is not None:
-            if receipt.refund is None:
-                embed.add_field(name='Duplicate', value='Your waifu was upgraded!')
-            else:
-                embed.add_field(name='Duplicate',
-                                value=f'Your duplicate waifu was refunded for {receipt.refund} {CURRENCY}!')
+            embed.add_field(name='Duplicate',
+                            value=f"Your {'older ' if receipt.refund is None else ''}"
+                                  f"duplicate waifu got refunded for {receipt.refund} {CURRENCY}")
         await ctx.send(embed=embed)
 
     @commands.group(aliases=['w'], invoke_without_command=True)
@@ -96,7 +94,6 @@ class WaifuShop(commands.Cog):
             if await ctx.confirm(confirmation_msg):
                 refund_amount = refund(db, ctx.author.id, waifu['rarity.value'], 1)
                 db.execute('DELETE FROM waifu WHERE id=?', [waifu['waifu.id']])
-                add_money(db, ctx.author.id, refund_amount)
                 await ctx.info(f"Successfully refunded {waifu['name']} for {refund_amount} {CURRENCY}")
             else:
                 await ctx.error('Cancelled refund.')
