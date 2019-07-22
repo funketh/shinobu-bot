@@ -92,7 +92,7 @@ class WaifuShop(commands.Cog):
             confirmation_msg = await ctx.send(
                 'Do you really want to get a refund for this waifu? (React with 👍 or 👎)', embed=embed)
             if await ctx.confirm(confirmation_msg):
-                refund_amount = refund(db, ctx.author.id, waifu['rarity.value'], 1)
+                refund_amount = refund(db, ctx.author.id, waifu['rarity.value'], 10)
                 db.execute('DELETE FROM waifu WHERE id=?', [waifu['waifu.id']])
                 await ctx.info(f"Successfully refunded {waifu['name']} for {refund_amount} {CURRENCY}")
             else:
