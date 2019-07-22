@@ -24,7 +24,7 @@ class Receipt(NamedTuple):
     rarity: sqlite3.Row
     old_rarity: Optional[sqlite3.Row]
     pack: sqlite3.Row
-    refund: Optional[int]
+    refund: int
 
 
 async def buy_pack(db: DB, user_id: int, pack_name: str) -> Receipt:
@@ -35,9 +35,9 @@ async def buy_pack(db: DB, user_id: int, pack_name: str) -> Receipt:
         add_money(db, user_id, -pack['cost'])
         char, rarity = pick_from_pack(db, pack['id'])
         old_rarity = give_waifu(db, user_id, char['id'], rarity['value'])
-        refund_amount: Optional[int] = None
+        refund_amount: int = 0
         if old_rarity is not None:
-            refunded_rarity_val = max(rarity['value'], old_rarity['value'])
+            refunded_rarity_val = min(rarity['value'], old_rarity['value'])
             refund_amount = refund(db, user_id, refunded_rarity_val, pack['cost'])
         return Receipt(character=char, rarity=rarity, old_rarity=old_rarity, pack=pack, refund=refund_amount)
 

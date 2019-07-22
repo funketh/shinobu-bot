@@ -46,7 +46,7 @@ class WaifuShop(commands.Cog):
                             rarity_color=receipt.rarity['colour'])
         if receipt.old_rarity is not None:
             embed.add_field(name='Duplicate',
-                            value=f"Your {'older ' if receipt.refund is None else ''}"
+                            value=f"Your {'older ' if receipt.old_rarity['value'] > receipt.rarity['value'] else ''}"
                                   f"duplicate waifu got refunded for {receipt.refund} {CURRENCY}")
         await ctx.send(embed=embed)
 
