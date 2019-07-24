@@ -59,7 +59,7 @@ def pick_rarity(db: DB) -> Rarity:
 
 
 def pick_character(db: DB, pack_id: int, rarity_val: int) -> Character:
-    chars = dict(db.execute("""
+    chars = [dict(c) for c in db.execute("""
     SELECT character.*, MAX(batch_in_pack.weight) AS weight FROM character
     JOIN character_in_batch   ON character_in_batch.character = character.id
     JOIN batch              ON batch.id = character_in_batch.batch
@@ -67,7 +67,7 @@ def pick_character(db: DB, pack_id: int, rarity_val: int) -> Character:
     JOIN rarity             ON rarity.value >= character.min_rarity
     WHERE batch_in_pack.pack = ? AND rarity.value = ?
     GROUP BY character.id
-    """, [pack_id, rarity_val]).fetchall())
+    """, [pack_id, rarity_val]).fetchall()]
     weights = [c.pop('weight') for c in chars]
     return Character.build(**random_choice(chars, weights=weights))
 
