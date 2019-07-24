@@ -15,7 +15,7 @@ from api.my_context import Context
 from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY
 from utils import database
-from utils.database import DB
+from utils.database import DB, Waifu
 from utils.waifus import find_waifus
 
 
@@ -38,20 +38,20 @@ class Change(ABC):
 
 
 class WaifuTransfer(Change):
-    def __init__(self, db: DB, waifu: sqlite3.Row, old_owner_id: int, new_owner_id: int):
+    def __init__(self, db: DB, waifu: Waifu, old_owner_id: int, new_owner_id: int):
         Constraint(old_owner_id != new_owner_id, "You can't give something to yourself!")
         Constraint(db.execute('SELECT id FROM waifu WHERE user=? AND character=?',
-                              [new_owner_id, waifu['character.id']]).fetchone() is None,
+                              [new_owner_id, waifu.character.id]).fetchone() is None,
                    "You can't give someone a waifu that he already owns")
         self.waifu = waifu
         self.old_owner_id = old_owner_id
         self.new_owner_id = new_owner_id
 
     async def execute(self, db: DB):
-        db.execute('UPDATE waifu SET user=? WHERE id=?', [self.new_owner_id, self.waifu['waifu.id']])
+        db.execute('UPDATE waifu SET user=? WHERE id=?', [self.new_owner_id, self.waifu.id])
 
     def __str__(self):
-        return f"<@{self.old_owner_id}> gives ***{self.waifu['rarity.name']}*** **{self.waifu['name']}** " \
+        return f"<@{self.old_owner_id}> gives ***{self.waifu.rarity.name}*** **{self.waifu.character.name}** " \
             f"[{self.waifu['series']}] to <@{self.new_owner_id}>"
 
 

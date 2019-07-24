@@ -35,19 +35,17 @@ class WaifuShop(commands.Cog):
         """Buy and open a pack"""
         db = database.connect()
         try:
-            receipt = await buy_pack(db, ctx.author.id, pack_name)
+            waifu, old_rarity_val, refund_amount = await buy_pack(db, ctx.author.id, pack_name)
         except NotEnoughMoney:
             return await ctx.error("You don't have enough money to buy that pack!")
         except UnknownPackName:
             return await ctx.error(f"Unknown pack name. Type `{CMD_PREFIX}{self.pack_list.name}` "
                                    f"for a list of available packs.")
-        embed = waifu_embed(name=receipt.character['name'], series=receipt.character['series'],
-                            image_url=receipt.character['image_url'], rarity_name=receipt.rarity['name'],
-                            rarity_color=receipt.rarity['colour'])
-        if receipt.old_rarity is not None:
+        embed = waifu_embed(waifu)
+        if old_rarity_val is not None:
             embed.add_field(name='Duplicate',
-                            value=f"Your {'older ' if receipt.old_rarity['value'] > receipt.rarity['value'] else ''}"
-                                  f"duplicate waifu got refunded for {receipt.refund} {CURRENCY}")
+                            value=f"Your {'older ' if old_rarity_val > waifu.rarity.value else ''}"
+                                  f"duplicate waifu got refunded for {refund_amount} {CURRENCY}")
         await ctx.send(embed=embed)
 
     @commands.group(aliases=['w'], invoke_without_command=True)
@@ -61,8 +59,8 @@ class WaifuShop(commands.Cog):
         user = user or ctx.author
         db = database.connect()
         waifus = list_waifus(db, user.id)
-        padding = max(len(w['name']) for w in waifus)
-        waifu_str = '\n'.join(f"{w['name']:<{padding}} - {w['rarity.name']}" for w in waifus)
+        padding = max(len(w.character.name) for w in waifus)
+        waifu_str = '\n'.join(f"{w.character.name:<{padding}} - {w.rarity.name}" for w in waifus)
         waifu_codeblock = f'```md\n{waifu_str}\n```'
         await ctx.send(waifu_codeblock)  # todo split into pages
 
@@ -74,8 +72,7 @@ class WaifuShop(commands.Cog):
             waifu = next(find_waifus(db, ctx.author.id, ' '.join(search_terms)))
         except StopIteration:
             return await ctx.error("You don't have any waifus!")
-        await ctx.send(embed=waifu_embed(name=waifu['name'], series=waifu['series'], image_url=waifu['image_url'],
-                                         rarity_name=waifu['rarity.name'], rarity_color=waifu['rarity.colour']))
+        await ctx.send(embed=waifu_embed(waifu))
 
     @waifu.command(name='refund', aliases=['r'])
     @waifu_transactions.forbid
@@ -87,14 +84,13 @@ class WaifuShop(commands.Cog):
                 waifu = next(find_waifus(db, ctx.author.id, ' '.join(search_terms)))
             except StopIteration:
                 return await ctx.error("You don't have any waifus!")
-            embed = waifu_embed(name=waifu['name'], series=waifu['series'], image_url=waifu['image_url'],
-                                rarity_name=waifu['rarity.name'], rarity_color=waifu['rarity.colour'])
+            embed = waifu_embed(waifu)
             confirmation_msg = await ctx.send(
                 'Do you really want to get a refund for this waifu? (React with 👍 or 👎)', embed=embed)
             if await ctx.confirm(confirmation_msg):
-                refund_amount = refund(db, ctx.author.id, waifu['rarity.value'], 10)
-                db.execute('DELETE FROM waifu WHERE id=?', [waifu['waifu.id']])
-                await ctx.info(f"Successfully refunded {waifu['name']} for {refund_amount} {CURRENCY}")
+                refund_amount = refund(db, ctx.author.id, waifu.rarity.value, 10)
+                db.execute('DELETE FROM waifu WHERE id=?', [waifu.id])
+                await ctx.info(f"Successfully refunded {waifu.character.name} for {refund_amount} {CURRENCY}")
             else:
                 await ctx.error('Cancelled refund.')
 
