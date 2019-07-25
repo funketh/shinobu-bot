@@ -44,9 +44,10 @@ class Shinobu(commands.Bot):
 
     async def on_command_error(self, ctx: Context, exception: Exception):
         cog = ctx.cog
-        if self.extra_events.get('on_command_error', None) \
-                or hasattr(ctx.command, 'on_error') \
-                or (cog and cog._get_overridden_method(cog.cog_command_error) is not None):
+        if (self.extra_events.get('on_command_error', None)
+                or hasattr(ctx.command, 'on_error')
+                or (cog and cog._get_overridden_method(cog.cog_command_error) is not None)
+                or isinstance(exception, commands.CommandNotFound)):
             return
         await ctx.error(re.sub(
             '.*?(\w+?:.*)',
