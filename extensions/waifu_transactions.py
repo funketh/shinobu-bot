@@ -52,7 +52,7 @@ class WaifuTransfer(Change):
 
     def __str__(self):
         return f"<@{self.old_owner_id}> gives ***{self.waifu.rarity.name}*** **{self.waifu.character.name}** " \
-            f"[{self.waifu['series']}] to <@{self.new_owner_id}>"
+            f"[{self.waifu.character.series}] to <@{self.new_owner_id}>"
 
 
 class MoneyTransfer(Change):
@@ -168,6 +168,7 @@ class Transactions(commands.Cog):
 
     @transaction.command(aliases=['m'])
     async def money(self, ctx: Context, partner: discord.User, amount: int):
+        """Give money to someone"""
         try:
             transfer = MoneyTransfer(database.connect(), amount, ctx.author.id, partner.id)
         except ConstraintError as e:
