@@ -61,8 +61,7 @@ class WaifuShop(commands.Cog):
         waifus = list_waifus(db, user.id)
         padding = max(len(w.character.name) for w in waifus)
         waifu_str = '\n'.join(f"{w.character.name:<{padding}} - {w.rarity.name}" for w in waifus)
-        waifu_codeblock = f'```md\n{waifu_str}\n```'
-        await ctx.send(waifu_codeblock)  # todo split into pages
+        await ctx.send_paginated(waifu_str, prefix='```md\n', suffix='\n```')
 
     @waifu.command(name='info', aliases=['i'])
     async def waifu_info(self, ctx: Context, *search_terms: str):

@@ -5,6 +5,8 @@ from discord import Color
 from discord.ext import commands
 from typing import Optional, List, Union
 
+from utils.formatting import paginate
+
 
 class Context(commands.Context):
     async def send_embed(self, color: Union[Color, int], description: Optional[str] = None,
@@ -14,6 +16,10 @@ class Context(commands.Context):
         if len(kwargs['description']) > 256:
             raise ValueError('Title must be 256 or fewer in length')
         return await self.send(content, embed=discord.Embed(color=color, **kwargs))
+
+    async def send_paginated(self, content, *, prefix: str = '', suffix: str = '', **kwargs):
+        for p in paginate(content, prefix, suffix):
+            await self.send(p, **kwargs)
 
     async def info(self, description: Optional[str] = None, content: Optional[str] = None, **kwargs):
         return await self.send_embed(discord.Color.green(), description, content, **kwargs)
