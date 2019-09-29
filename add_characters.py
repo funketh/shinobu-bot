@@ -9,8 +9,18 @@ if __name__ == '__main__':
     with open(sys.argv[1], newline='') as tsvfile:
         new_chars = list(csv.DictReader(tsvfile, delimiter='\t'))
     db = database.connect()
+    tmp = []
     for char in new_chars:
-        char['url'] = char['url'] or None
+        char = {k: v.strip() for k, v in char.items()}
+        try:
+            char['id'] = int(char['id'])
+        except ValueError:
+            print(f'ERRONEOUS ENTRY: {char["name"]}')
+        else:
+            char['rarity'] = int(char['rarity'])
+            char['url'] = char['url'] or None
+            tmp.append(char)
+    new_chars = tmp
 
     # Name conflicts
     new_names = []
@@ -30,7 +40,7 @@ if __name__ == '__main__':
     # Insert Data
     with db:
         db.executemany('REPLACE INTO character(id, name, image_url, series, min_rarity) VALUES(?, ?, ?, ?, ?)',
-                       [[c['id'], c['name'], c['url'], c['series'], c['rarity']] for c in new_chars])
+                       [(c['id'], c['name'], c['url'], c['series'], c['rarity']) for c in new_chars])
         db.executemany('INSERT OR IGNORE INTO batch(name) VALUES(?)',
                        {(c['batch'],) for c in new_chars})
         batches = {b['name']: b['id'] for b in db.execute('SELECT name, id FROM batch')}
