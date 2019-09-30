@@ -15,18 +15,9 @@ from api.my_context import Context
 from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY
 from utils import database
+from utils.constrain import ConstraintError, constrain
 from utils.database import DB, Waifu
 from utils.waifus import find_waifus
-
-
-class ConstraintError(ValueError):
-    pass
-
-
-class Constraint:
-    def __init__(self, condition, msg: str):
-        if not condition:
-            raise ConstraintError(msg)
 
 
 class Change(ABC):
@@ -39,10 +30,10 @@ class Change(ABC):
 
 class WaifuTransfer(Change):
     def __init__(self, db: DB, waifu: Waifu, old_owner_id: int, new_owner_id: int):
-        Constraint(old_owner_id != new_owner_id, "You can't give something to yourself!")
-        Constraint(db.execute('SELECT id FROM waifu WHERE user=? AND character=?',
-                              [new_owner_id, waifu.character.id]).fetchone() is None,
-                   "You can't give someone a waifu that he already owns")
+        constrain(old_owner_id != new_owner_id, "You can't give something to yourself!")
+        constrain(db.execute('SELECT id FROM waifu WHERE user=? AND character=?',
+                             [new_owner_id, waifu.character.id]).fetchone() is None,
+                  "You can't give someone a waifu that he already owns")
         self.waifu = waifu
         self.old_owner_id = old_owner_id
         self.new_owner_id = new_owner_id
@@ -52,14 +43,14 @@ class WaifuTransfer(Change):
 
     def __str__(self):
         return f"<@{self.old_owner_id}> gives ***{self.waifu.rarity.name}*** **{self.waifu.character.name}** " \
-            f"[{self.waifu.character.series}] to <@{self.new_owner_id}>"
+               f"[{self.waifu.character.series}] to <@{self.new_owner_id}>"
 
 
 class MoneyTransfer(Change):
     def __init__(self, db: DB, amount: int, from_id: int, to_id: int):
-        Constraint(from_id != to_id, "You can't give something to yourself!")
-        Constraint(amount <= db.execute('SELECT balance FROM user WHERE id=?').fetchone()[0],
-                   "You don't have enough money for that!")
+        constrain(from_id != to_id, "You can't give something to yourself!")
+        constrain(amount <= db.execute('SELECT balance FROM user WHERE id=?').fetchone()[0],
+                  "You don't have enough money for that!")
         self.amount = amount
         self.from_id = from_id
         self.to_id = to_id
