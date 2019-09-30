@@ -15,8 +15,7 @@ from utils.constrain import constrain
 
 def import_from_str(import_instruction: str) -> object:
     invalid_obj_msg = f'Invalid object path: {import_instruction}'
-    constrain(not re.search(r'[^-_.A-Za-z0-9]', import_instruction),
-              invalid_obj_msg)
+    constrain(not re.search(r'[^-_.A-Za-z0-9]', import_instruction), invalid_obj_msg)
     path = import_instruction.split('.')
     current_dir = os.getcwd()
     for i, p in enumerate(path):
@@ -53,7 +52,7 @@ class PrintSource(commands.Cog):
     @source.command(name='print', aliases=['p'])
     async def print_(self, ctx: Context, path: import_from_str):
         """Print the source code of a specified object"""
-        await ctx.send_paginated(inspect.getsource(path), prefix='```py\n', suffix='\n```')
+        await ctx.send_paginated(inspect.getsource(path).replace('```', '` ` `'), prefix='```py\n', suffix='\n```')
 
 
 def setup(bot: Shinobu):
