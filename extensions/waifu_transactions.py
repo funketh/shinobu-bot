@@ -33,7 +33,7 @@ class WaifuTransfer(Change):
         constrain(old_owner_id != new_owner_id, "You can't give something to yourself!")
         constrain(db.execute('SELECT id FROM waifu WHERE user=? AND character=?',
                              [new_owner_id, waifu.character.id]).fetchone() is None,
-                  "You can't give someone a waifu that he already owns")
+                  "You can't give someone a waifu they already own")
         self.waifu = waifu
         self.old_owner_id = old_owner_id
         self.new_owner_id = new_owner_id
