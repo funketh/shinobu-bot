@@ -42,14 +42,18 @@ class WaifuTransfer(Change):
         db.execute('UPDATE waifu SET user=? WHERE id=?', [self.new_owner_id, self.waifu.id])
 
     def __str__(self):
-        return f"<@{self.old_owner_id}> gives ***{self.waifu.rarity.name}*** **{self.waifu.character.name}** " \
-               f"[{self.waifu.character.series}] to <@{self.new_owner_id}>"
+        return (
+            f"<@{self.old_owner_id}> gives"
+            f" ***{self.waifu.rarity.name}*** **{self.waifu.character.name}**"
+            f" [{self.waifu.character.series}] to <@{self.new_owner_id}>"
+        )
 
 
 class MoneyTransfer(Change):
     def __init__(self, db: DB, amount: int, from_id: int, to_id: int):
         constrain(from_id != to_id, "You can't give something to yourself!")
-        constrain(amount <= db.execute('SELECT balance FROM user WHERE id=?').fetchone()[0],
+        constrain(amount <= db.execute('SELECT balance FROM user WHERE id=?',
+                                       [from_id]).fetchone()[0],
                   "You don't have enough money for that!")
         self.amount = amount
         self.from_id = from_id
