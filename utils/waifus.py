@@ -28,11 +28,11 @@ async def buy_pack(db: DB, user_id: int, pack_name: str) -> Tuple[Waifu, Optiona
         add_money(db, user.id, -pack.cost)
         character, rarity = pick_from_pack(db, pack.id)
         waifu, old_rarity = give_waifu(db, user, character, rarity)
-        refunded_rarity: Optional[Rarity] = None
+        refunded: Optional[int] = None
         if old_rarity is not None:
-            refunded_rarity = min(rarity, old_rarity, key=lambda r: r.value)
-            add_money(db, user_id, refunded_rarity.refund)
-        return waifu, old_rarity, refunded_rarity.refund
+            refunded = min(rarity, old_rarity, key=lambda r: r.value).refund
+            add_money(db, user_id, refunded)
+        return waifu, old_rarity, refunded
 
 
 def add_money(db: DB, user_id: int, amount: int):
