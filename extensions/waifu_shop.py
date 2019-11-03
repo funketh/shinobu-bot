@@ -7,7 +7,7 @@ from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY, CMD_PREFIX
 from extensions import waifu_transactions
 from utils import database
-from utils.waifus import buy_pack, CURRENT_PREDICATE, NotEnoughMoney, UnknownPackName, refund, find_waifus, \
+from utils.waifus import buy_pack, CURRENT_PREDICATE, NotEnoughMoney, UnknownPackName, find_waifus, \
     list_waifus, waifu_embed, add_money
 
 
