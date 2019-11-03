@@ -18,6 +18,7 @@ class Economy(commands.Cog):
     def __init__(self, bot: Shinobu):
         self.bot = bot
         self.birthday.start()
+        self.passive_income.start()
         self.reward_media_consumption.start()
 
     async def on_ready(self):
@@ -32,6 +33,29 @@ class Economy(commands.Cog):
                 user: discord.User = self.bot.get_user(user_row['id'])
                 await user.send(f'🎉🎉🎉 Happy Birthday! 🎉🎉🎉\nAs a present, you get 100 {CURRENCY}!')
                 logger.info(f'gifted 100 to {user.name} as a birthday present!')
+
+    @commands.command(aliases=['b'])
+    async def balance(self, ctx: Context, user: Optional[discord.User] = None):
+        """Get a user's balance"""
+        user = user or ctx.author
+        with database.connect() as db:
+            balance = db.execute('SELECT balance FROM user WHERE id=?',
+                                 [user.id]).fetchone()['balance']
+        await ctx.info(f'{user.mention}\'s balance: {balance} {CURRENCY}')
+
+    @tasks.loop(hours=8)
+    async def passive_income(self):
+        with database.connect() as db:
+            db.execute('UPDATE user SET income=MIN(income+1, 25)')
+
+    @commands.command(aliases=['i'])
+    async def income(self, ctx: Context):
+        """Withdraw accumulated passive income"""
+        db = database.connect()
+        with db:
+            amount = db.execute('SELECT income FROM user WHERE id=?', [ctx.author.id]).fetchone()[0]
+            db.execute('UPDATE user SET balance=balance+?, income=0 WHERE id=?', [amount, ctx.author.id])
+        await ctx.info(f'Withdrew {amount} {CURRENCY}')
 
     @tasks.loop(minutes=30)
     async def reward_media_consumption(self):
@@ -54,15 +78,6 @@ class Economy(commands.Cog):
             db.executemany('REPLACE INTO consumed_media(user,type,id,amount) VALUES(?,?,?,?)', new_entries)
             db.executemany('UPDATE user SET balance=balance+? WHERE id=?',
                            [(amount, id_) for id_, amount in rewarded_money.items()])
-
-    @commands.command(aliases=['b'])
-    async def balance(self, ctx: Context, user: Optional[discord.User] = None):
-        """Get a user's balance"""
-        user = user or ctx.author
-        with database.connect() as db:
-            balance = db.execute('SELECT balance FROM user WHERE id=?',
-                                 [user.id]).fetchone()['balance']
-        await ctx.info(f'{user.mention}\'s balance: {balance} {CURRENCY}')
 
     @commands.cooldown(1, 60)
     @commands.command(aliases=['up'])

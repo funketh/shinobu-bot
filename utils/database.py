@@ -95,6 +95,7 @@ class Rarity(RowData):
 class User(RowData):
     id: int
     balance: NonObligatory[int] = Unavailable
+    income: NonObligatory[int] = Unavailable
     birthday: NonObligatory[str] = Unavailable
     mal_username: NonObligatory[str] = Unavailable
 
