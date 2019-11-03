@@ -49,7 +49,7 @@ class Shinobu(commands.Bot):
                 or isinstance(exception, commands.CommandNotFound)):
             return
         await ctx.error(re.sub(
-            '.*?(\w+?:.*)',
+            r'.*?(\w+?:.*)',
             lambda m: m.group(1),
             traceback.format_exception_only(type(exception), exception)[-1]
         ))
