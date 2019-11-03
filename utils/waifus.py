@@ -104,7 +104,8 @@ def list_waifus(db: DB, user_id: int) -> List[Waifu]:
     return Waifu.from_rows(db.execute("""
     SELECT waifu.id, waifu.user, character.name AS "character.name", character.image_url AS "character.image_url",
            character.series AS "character.series", character.id AS "character.id",
-           rarity.name AS "rarity.name", rarity.colour AS "rarity.colour", rarity.value AS "rarity.value"
+           rarity.name AS "rarity.name", rarity.colour AS "rarity.colour", rarity.value AS "rarity.value",
+           rarity.refund AS "rarity.refund"
     FROM waifu
     JOIN character ON character.id = waifu.character
     JOIN rarity ON rarity.value = waifu.rarity
