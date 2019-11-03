@@ -14,20 +14,10 @@ logger = logging.getLogger(__name__)
 class Economy(commands.Cog):
     def __init__(self, bot: Shinobu):
         self.bot = bot
-        self.passive_income.start()
         self.birthday.start()
 
     async def on_ready(self):
         await self.birthday.coro()
-
-    def cog_unload(self):
-        self.passive_income.cancel()
-
-    @tasks.loop(hours=3)
-    async def passive_income(self):
-        db = database.connect()
-        with db:
-            db.execute('UPDATE user SET income=MIN(income+1, 25)')
 
     @tasks.loop(hours=24)
     async def birthday(self):
@@ -39,15 +29,6 @@ class Economy(commands.Cog):
                 user: discord.User = self.bot.get_user(user_row['id'])
                 await user.send(f'🎉🎉🎉 Happy Birthday! 🎉🎉🎉\nAs a present, you get 100 {CURRENCY}!')
                 logger.info(f'gifted 100 to {user.name} as a birthday present!')
-
-    @commands.command(aliases=['i'])
-    async def income(self, ctx: Context):
-        """Withdraw accumulated passive income"""
-        db = database.connect()
-        with db:
-            amount = db.execute('SELECT income FROM user WHERE id=?', [ctx.author.id]).fetchone()[0]
-            db.execute('UPDATE user SET balance=balance+?, income=0 WHERE id=?', [amount, ctx.author.id])
-        await ctx.info(f'Withdrew {amount} {CURRENCY}')
 
     @commands.command(aliases=['b'])
     async def balance(self, ctx: Context, user: Optional[discord.User] = None):
