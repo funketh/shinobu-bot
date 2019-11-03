@@ -51,8 +51,7 @@ class Economy(commands.Cog):
     @commands.command(aliases=['i'])
     async def income(self, ctx: Context):
         """Withdraw accumulated passive income"""
-        db = database.connect()
-        with db:
+        with database.connect() as db:
             amount = db.execute('SELECT income FROM user WHERE id=?', [ctx.author.id]).fetchone()[0]
             db.execute('UPDATE user SET balance=balance+?, income=0 WHERE id=?', [amount, ctx.author.id])
         await ctx.info(f'Withdrew {amount} {CURRENCY}')
