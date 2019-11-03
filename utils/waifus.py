@@ -1,10 +1,9 @@
-import math
+import random
 import sqlite3
+from typing import Tuple, Optional, Generator, List
 
 import discord
-import random
 from fuzzywuzzy import process
-from typing import Tuple, Optional, Generator, List
 
 from utils.database import DB, Waifu, Pack, Character, User, Rarity
 
@@ -28,12 +27,11 @@ async def buy_pack(db: DB, user_id: int, pack_name: str) -> Tuple[Waifu, Optiona
             raise UnknownPackName
         add_money(db, user.id, -pack.cost)
         character, rarity = pick_from_pack(db, pack.id)
-        waifu, old_rarity_val = give_waifu(db, user, character, rarity)
-        refund_amount: int = 0
-        if old_rarity_val is not None:
-            refunded_rarity_val = min(rarity.value, old_rarity_val)
-            refund_amount = refund(db, user_id, refunded_rarity_val, pack.cost)
-        return waifu, old_rarity_val, refund_amount
+        waifu, old_rarity = give_waifu(db, user, character, rarity)
+        if old_rarity is not None:
+            refunded_rarity = min(rarity, old_rarity, key=lambda r: r.value)
+            add_money(db, user_id, refunded_rarity.refund)
+        return waifu, old_rarity, refunded_rarity.refund
 
 
 def add_money(db: DB, user_id: int, amount: int):
@@ -72,24 +70,20 @@ def pick_character(db: DB, pack_id: int, rarity_val: int) -> Character:
     return Character.build(**random_choice(chars, weights=weights))
 
 
-def give_waifu(db: DB, user: User, character: Character, new_rarity: Rarity) -> Tuple[Waifu, Optional[int]]:
-    old_rarity_val, waifu_id = db.execute('''SELECT rarity.value, waifu.id FROM waifu
-                                          JOIN rarity ON rarity.value=waifu.rarity
-                                          WHERE user=? AND character=?''',
-                                          [user.id, character.id]).fetchone() or (None, None)
+def give_waifu(db: DB, user: User, character: Character, new_rarity: Rarity) -> Tuple[Waifu, Rarity]:
+    old_rarity_val, waifu_id = db.execute(
+        'SELECT waifu.rarity, waifu.id FROM waifu WHERE user=? AND character=?',
+        [user.id, character.id]
+    ).fetchone() or (None, None)
     if waifu_id is None or old_rarity_val < new_rarity.value:
         waifu_id = db.execute('REPLACE INTO waifu(user, character, rarity) VALUES(?, ?, ?)',
                               [user.id, character.id, new_rarity.value]).lastrowid
-    return Waifu.build(id=waifu_id, character=character, rarity=new_rarity, user=user), old_rarity_val
-
-
-def refund(db: DB, user_id: int, rarity_val: int, cost: int) -> int:
-    amount = math.ceil(db.execute("""
-    SELECT ? * CAST(value AS FLOAT) / (SELECT MAX(value) FROM rarity)
-    AS amount FROM rarity WHERE value=?
-    """, [cost, rarity_val]).fetchone()[0])
-    add_money(db, user_id, amount)
-    return amount
+    old_rarity = (
+        Rarity.build(**db.execute('SELECT * FROM rarity WHERE value=?', [old_rarity_val]).fetchone())
+        if old_rarity_val is not None else None
+    )
+    waifu = Waifu.build(id=waifu_id, character=character, rarity=new_rarity, user=user)
+    return waifu, old_rarity
 
 
 def find_waifus(db: DB, user_id: int, query: str) -> Generator[Waifu, None, None]:

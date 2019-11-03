@@ -88,13 +88,13 @@ class Rarity(RowData):
     name: NonObligatory[str] = Unavailable
     colour: NonObligatory[int] = Unavailable
     weight: NonObligatory[float] = Unavailable
+    refund: NonObligatory[int] = Unavailable
 
 
 @dataclass
 class User(RowData):
     id: int
     balance: NonObligatory[int] = Unavailable
-    income: NonObligatory[int] = Unavailable
     birthday: NonObligatory[str] = Unavailable
 
 
