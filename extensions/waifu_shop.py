@@ -20,8 +20,8 @@ class WaifuShop(commands.Cog):
     @pack.command(name='list', aliases=['l'])
     async def pack_list(self, ctx: Context):
         """Lists all currently available packs"""
-        db = database.connect()
-        packs = db.execute(f'SELECT * FROM pack WHERE {CURRENT_PREDICATE}').fetchall()
+        with database.connect() as db:
+            packs = db.execute(f'SELECT * FROM pack WHERE {CURRENT_PREDICATE}').fetchall()
         embed = discord.Embed(colour=discord.Colour.gold())
         for p in packs:
             end_date_str = f" (Available until {p['end_date']})" if p['end_date'] else ''
@@ -77,8 +77,7 @@ class WaifuShop(commands.Cog):
     @waifu_transactions.forbid
     async def waifu_refund(self, ctx: Context, *search_terms: str):
         """Get a refund for one of your waifus"""
-        db = database.connect()
-        with db:
+        with database.connect() as db:
             try:
                 waifu = next(find_waifus(db, ctx.author.id, ' '.join(search_terms)))
             except StopIteration:

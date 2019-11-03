@@ -29,8 +29,7 @@ class Shinobu(commands.Bot):
                 self.load_extension(ext)
 
     async def update_user_database(self):
-        db = database.connect()
-        with db:
+        with database.connect() as db:
             db.executemany('INSERT OR IGNORE INTO user(id) VALUES(?)',
                            [[m.id] for g in self.guilds for m in g.members])
 

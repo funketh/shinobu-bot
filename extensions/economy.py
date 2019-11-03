@@ -21,8 +21,7 @@ class Economy(commands.Cog):
 
     @tasks.loop(hours=24)
     async def birthday(self):
-        db = database.connect()
-        with db:
+        with database.connect() as db:
             for user_row in db.execute("SELECT * FROM user WHERE birthday == DATE('now', 'localtime')").fetchall():
                 db.execute('UPDATE user SET balance=balance+100, birthday=? WHERE id=?',
                            [add_years(user_row['birthday'], 1), user_row['id']])
@@ -34,8 +33,9 @@ class Economy(commands.Cog):
     async def balance(self, ctx: Context, user: Optional[discord.User] = None):
         """Get a user's balance"""
         user = user or ctx.author
-        db = database.connect()
-        balance = db.execute('SELECT balance FROM user WHERE id=?', [user.id]).fetchone()['balance']
+        with database.connect() as db:
+            balance = db.execute('SELECT balance FROM user WHERE id=?',
+                                 [user.id]).fetchone()['balance']
         await ctx.info(f'{user.mention}\'s balance: {balance} {CURRENCY}')
 
 
