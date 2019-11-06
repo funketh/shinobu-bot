@@ -69,7 +69,7 @@ def pick_rarity(db: DB) -> Rarity:
 def pick_character(db: DB, pack_id: int, rarity_val: int) -> Character:
     chars = [dict(c) for c in db.execute("""
     SELECT character.id, character.name, character.image_url,
-           character.series, character.rarity AS 'rarity.value',
+           character.series, character.min_rarity AS 'rarity.value',
            MAX(batch_in_pack.weight) AS weight FROM character
     JOIN character_in_batch   ON character_in_batch.character = character.id
     JOIN batch              ON batch.id = character_in_batch.batch
