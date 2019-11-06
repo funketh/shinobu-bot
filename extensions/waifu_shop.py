@@ -101,7 +101,8 @@ class WaifuShop(commands.Cog):
             waifu = find_waifu(db, ctx.author.id, ' '.join(search_terms))
             embed = waifu_embed(waifu)
             if waifu.rarity.upgrade_cost is None:
-                return await ctx.error(f'This rarity is not upgradable: **{waifu.rarity}** ({waifu.character.name})')
+                return await ctx.error(f'This rarity is not upgradable:'
+                                       f' **{waifu.rarity.name}** ({waifu.character.name})')
             confirmation_msg = await ctx.send(
                 f'Do you really want to upgrade this waifu for {waifu.rarity.upgrade_cost} {CURRENCY}?',
                 embed=embed
