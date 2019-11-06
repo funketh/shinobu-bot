@@ -79,7 +79,7 @@ class Character(RowData):
     name: NonObligatory[str] = Unavailable
     image_url: NonObligatory[Optional[str]] = Unavailable
     series: NonObligatory[str] = Unavailable
-    min_rarity: NonObligatory[Rarity] = Unavailable
+    rarity: NonObligatory[Rarity] = Unavailable
 
 
 @dataclass

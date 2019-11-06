@@ -39,7 +39,7 @@ if __name__ == '__main__':
 
     # Insert Data
     with db:
-        db.executemany('REPLACE INTO character(id, name, image_url, series, min_rarity) VALUES(?, ?, ?, ?, ?)',
+        db.executemany('REPLACE INTO character(id, name, image_url, series, rarity) VALUES(?, ?, ?, ?, ?)',
                        [(c['id'], c['name'], c['url'], c['series'], c['rarity']) for c in new_chars])
         db.executemany('INSERT OR IGNORE INTO batch(name) VALUES(?)',
                        {(c['batch'],) for c in new_chars})
