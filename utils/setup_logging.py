@@ -3,7 +3,7 @@ import logging.handlers
 
 
 def setup_logging():
-    file_handler = logging.handlers.TimedRotatingFileHandler('logs/debug.log', when='midnight', backupCount=7)
+    file_handler = logging.handlers.RotatingFileHandler('logs/debug.log', maxBytes=500000, backupCount=7)
     file_handler.setLevel(logging.DEBUG)
     stream_handler = logging.StreamHandler()
     stream_handler.setLevel(logging.INFO)
