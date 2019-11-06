@@ -79,7 +79,7 @@ class Character(RowData):
     name: NonObligatory[str] = Unavailable
     image_url: NonObligatory[Optional[str]] = Unavailable
     series: NonObligatory[str] = Unavailable
-    min_rarity: NonObligatory[int] = Unavailable
+    min_rarity: NonObligatory[Rarity] = Unavailable
 
 
 @dataclass
@@ -89,6 +89,8 @@ class Rarity(RowData):
     colour: NonObligatory[int] = Unavailable
     weight: NonObligatory[float] = Unavailable
     refund: NonObligatory[int] = Unavailable
+    upgrade_cost: NonObligatory[Optional[int]] = Unavailable
+    auto_upgrade: NonObligatory[bool] = Unavailable
 
 
 @dataclass

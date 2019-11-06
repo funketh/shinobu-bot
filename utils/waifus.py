@@ -1,6 +1,7 @@
 import random
 import sqlite3
-from typing import Tuple, Optional, Generator, List
+from dataclasses import dataclass
+from typing import Tuple, Optional, Generator, List, Union
 
 import discord
 from fuzzywuzzy import process
@@ -17,7 +18,20 @@ class NotEnoughMoney(BaseException): pass
 class UnknownPackName(BaseException): pass
 
 
-async def buy_pack(db: DB, user_id: int, pack_name: str) -> Tuple[Waifu, Optional[int], int]:
+@dataclass(frozen=True)
+class Refund:
+    amount: int
+
+
+@dataclass(frozen=True)
+class Upgrade:
+    upgraded_rarity: Rarity
+
+
+DuplicateType = Union[Refund, Upgrade, None]
+
+
+async def buy_pack(db: DB, user_id: int, pack_name: str) -> Tuple[Waifu, DuplicateType]:
     with db:
         user = User.build(**db.execute('SELECT * FROM user WHERE id=?', [user_id]).fetchone())
         try:
@@ -27,12 +41,7 @@ async def buy_pack(db: DB, user_id: int, pack_name: str) -> Tuple[Waifu, Optiona
             raise UnknownPackName
         add_money(db, user.id, -pack.cost)
         character, rarity = pick_from_pack(db, pack.id)
-        waifu, old_rarity = give_waifu(db, user, character, rarity)
-        refunded: Optional[int] = None
-        if old_rarity is not None:
-            refunded = min(rarity, old_rarity, key=lambda r: r.value).refund
-            add_money(db, user_id, refunded)
-        return waifu, old_rarity, refunded
+        return give_waifu(db, user, character, rarity)
 
 
 def add_money(db: DB, user_id: int, amount: int):
@@ -59,7 +68,9 @@ def pick_rarity(db: DB) -> Rarity:
 
 def pick_character(db: DB, pack_id: int, rarity_val: int) -> Character:
     chars = [dict(c) for c in db.execute("""
-    SELECT character.*, MAX(batch_in_pack.weight) AS weight FROM character
+    SELECT character.id, character.name, character.image_url,
+           character.series, character.rarity AS 'rarity.value',
+           MAX(batch_in_pack.weight) AS weight FROM character
     JOIN character_in_batch   ON character_in_batch.character = character.id
     JOIN batch              ON batch.id = character_in_batch.batch
     JOIN batch_in_pack      ON batch_in_pack.batch = batch.id
@@ -71,20 +82,42 @@ def pick_character(db: DB, pack_id: int, rarity_val: int) -> Character:
     return Character.build(**random_choice(chars, weights=weights))
 
 
-def give_waifu(db: DB, user: User, character: Character, new_rarity: Rarity) -> Tuple[Waifu, Rarity]:
-    old_rarity_val, waifu_id = db.execute(
-        'SELECT waifu.rarity, waifu.id FROM waifu WHERE user=? AND character=?',
-        [user.id, character.id]
-    ).fetchone() or (None, None)
-    if waifu_id is None or old_rarity_val < new_rarity.value:
-        waifu_id = db.execute('REPLACE INTO waifu(user, character, rarity) VALUES(?, ?, ?)',
-                              [user.id, character.id, new_rarity.value]).lastrowid
-    old_rarity = (
-        Rarity.build(**db.execute('SELECT * FROM rarity WHERE value=?', [old_rarity_val]).fetchone())
-        if old_rarity_val is not None else None
-    )
-    waifu = Waifu.build(id=waifu_id, character=character, rarity=new_rarity, user=user)
-    return waifu, old_rarity
+def give_waifu(db: DB, user: User, character: Character, new_rarity: Rarity) -> Tuple[Waifu, DuplicateType]:
+    _old_waifu_row = db.execute("""
+    SELECT waifu.id, waifu.rarity AS 'rarity.value',
+           waifu.character AS 'character.id', waifu.user AS 'user.id'
+    FROM waifu WHERE user=? AND character=?
+    """, [user.id, character.id]).fetchone()
+    waifu = Waifu.build(**_old_waifu_row) if _old_waifu_row else None
+
+    if waifu is None:
+        _waifu_id = db.execute('INSERT INTO waifu(user, character, rarity) VALUES(?, ?, ?)',
+                               [user.id, character.id, new_rarity.value]).lastrowid
+        waifu = Waifu.build(id=_waifu_id, character=character, rarity=new_rarity, user=user)
+        duplicate = None
+    elif waifu.rarity.value == new_rarity.value and new_rarity.auto_upgrade:
+        new_rarity = Rarity.build(**db.execute('SELECT * FROM rarity WHERE value=?',
+                                               [waifu.rarity.value + 1]).fetchone())
+        db.execute('UPDATE waifu SET rarity=? WHERE id=?', [new_rarity.value, waifu.id])
+        waifu.rarity = new_rarity
+        duplicate = Upgrade(new_rarity)
+    else:
+        waifu.rarity = Rarity.build(**db.execute('SELECT * FROM rarity WHERE value=?',
+                                                 [waifu.rarity.value]).fetchone())
+        lower, higher = sorted([new_rarity, waifu.rarity], key=lambda r: r.value)
+        db.execute('UPDATE waifu SET rarity=? WHERE id=?', [higher.value, waifu.id])
+        waifu.rarity = higher
+        duplicate = Refund(lower.refund)
+        add_money(db, user.id, duplicate.amount)
+
+    return waifu, duplicate
+
+
+def find_waifu(*args, **kwargs) -> Waifu:
+    try:
+        return next(find_waifus(*args, **kwargs))
+    except StopIteration as e:
+        raise ValueError("You don't have any waifus!") from e
 
 
 def find_waifus(db: DB, user_id: int, query: str) -> Generator[Waifu, None, None]:
@@ -105,7 +138,8 @@ def list_waifus(db: DB, user_id: int) -> List[Waifu]:
     SELECT waifu.id, waifu.user, character.name AS "character.name", character.image_url AS "character.image_url",
            character.series AS "character.series", character.id AS "character.id",
            rarity.name AS "rarity.name", rarity.colour AS "rarity.colour", rarity.value AS "rarity.value",
-           rarity.refund AS "rarity.refund"
+           rarity.refund AS "rarity.refund", rarity.upgrade_cost AS "rarity.upgrade_cost",
+           rarity.auto_upgrade AS "rarity.auto_upgrade"
     FROM waifu
     JOIN character ON character.id = waifu.character
     JOIN rarity ON rarity.value = waifu.rarity

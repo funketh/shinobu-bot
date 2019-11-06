@@ -17,7 +17,7 @@ from data.CONSTANTS import CURRENCY
 from utils import database
 from utils.constrain import ConstraintError, constrain
 from utils.database import DB, Waifu
-from utils.waifus import find_waifus
+from utils.waifus import find_waifus, find_waifu
 
 
 class Change(ABC):
@@ -129,8 +129,7 @@ class Transactions(commands.Cog):
                 await stack.enter_async_context(change_list.lock)
             changes_str = '\n'.join(str(c) for c in all_changes)
             msg = await ctx.send(f"{', '.join(s.mention for s in signers)}: "
-                                 f"Do you accept the following changes? (React with 👍 or 👎)\n"
-                                 f"{changes_str}")
+                                 f"Do you accept the following changes?\n{changes_str}")
             if await ctx.confirm_multiuser(msg, signers):
                 try:
                     with database.connect() as db:
@@ -148,10 +147,7 @@ class Transactions(commands.Cog):
     async def waifu(self, ctx: Context, partner: discord.User, *search_terms):
         """Give one of your waifus to the specified user"""
         db = database.connect()
-        try:
-            waifu = next(find_waifus(db, ctx.author.id, ' '.join(search_terms)))
-        except StopIteration:
-            return await ctx.error("You don't have any waifus!")
+        waifu = find_waifu(db, ctx.author.id, ' '.join(search_terms))
         try:
             transfer = WaifuTransfer(db, waifu, ctx.author.id, partner.id)
         except ConstraintError as e:
