@@ -43,7 +43,7 @@ class Economy(commands.Cog):
                                  [user.id]).fetchone()['balance']
         await ctx.info(f'{user.mention}\'s balance: {balance} {CURRENCY}')
 
-    @tasks.loop(hours=6)
+    @tasks.loop(hours=8)
     async def passive_income(self):
         with database.connect() as db:
             db.execute('UPDATE user SET income=MIN(income+1, 25)')
