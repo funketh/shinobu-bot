@@ -83,6 +83,7 @@ class Economy(commands.Cog):
     async def update(self, ctx: Context):
         """Force a full update of everyone's earnings"""
         await self.reward_media_consumption.coro(self)
+        await ctx.info("Success!")
 
 
 def add_years(date_: str, amount: int) -> str:
