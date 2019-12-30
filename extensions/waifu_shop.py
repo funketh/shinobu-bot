@@ -108,7 +108,7 @@ class WaifuShop(commands.Cog):
                 embed=embed
             )
             if await ctx.confirm(confirmation_msg):
-                add_money(db, ctx.author.id, waifu.rarity.upgrade_cost)
+                add_money(db, ctx.author.id, -waifu.rarity.upgrade_cost)
                 db.execute('UPDATE waifu SET rarity=? WHERE id=?', [waifu.rarity.value + 1, waifu.id])
                 await ctx.info('Success!')
             else:
