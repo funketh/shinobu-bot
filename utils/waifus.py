@@ -1,7 +1,7 @@
 import random
 import sqlite3
 from dataclasses import dataclass
-from typing import Tuple, Optional, Generator, List, Union
+from typing import Tuple, Generator, List, Union
 
 import discord
 from fuzzywuzzy import process
@@ -40,7 +40,7 @@ async def buy_pack(db: DB, user_id: int, pack_name: str) -> Tuple[Waifu, Duplica
         except AttributeError:
             raise UnknownPackName
         add_money(db, user.id, -pack.cost)
-        character, rarity = pick_from_pack(db, pack.id)
+        character, rarity = pick_from_pack(db, pack.name)
         return give_waifu(db, user, character, rarity)
 
 
@@ -51,9 +51,9 @@ def add_money(db: DB, user_id: int, amount: int):
         raise NotEnoughMoney
 
 
-def pick_from_pack(db: DB, pack_id: int) -> Tuple[Character, Rarity]:
+def pick_from_pack(db: DB, pack_name: str) -> Tuple[Character, Rarity]:
     rarity = pick_rarity(db)
-    character = pick_character(db, pack_id, rarity.value)
+    character = pick_character(db, pack_name, rarity.value)
     return character, rarity
 
 
@@ -66,19 +66,18 @@ def pick_rarity(db: DB) -> Rarity:
     return Rarity.build(**random_choice(rarities, weights=(r['weight'] for r in rarities)))
 
 
-def pick_character(db: DB, pack_id: int, rarity_val: int) -> Character:
+def pick_character(db: DB, pack_name: str, rarity_val: int) -> Character:
     chars = [dict(c) for c in db.execute("""
     SELECT character.id, character.name, character.image_url,
            character.series, character.rarity AS 'rarity.value',
-           MAX(batch_in_pack.weight) AS weight FROM character
-    JOIN character_in_batch   ON character_in_batch.character = character.id
-    JOIN batch              ON batch.id = character_in_batch.batch
-    JOIN batch_in_pack      ON batch_in_pack.batch = batch.id
+           character.batch AS 'batch.value',
+           MAX(batch_in_pack.weight) AS __weight__ FROM character
+    JOIN batch_in_pack      ON batch_in_pack.batch = character.batch
     JOIN rarity             ON rarity.value >= character.rarity
     WHERE batch_in_pack.pack = ? AND rarity.value = ?
     GROUP BY character.id
-    """, [pack_id, rarity_val]).fetchall()]
-    weights = [c.pop('weight') for c in chars]
+    """, [pack_name, rarity_val]).fetchall()]
+    weights = [c.pop('__weight__') for c in chars]
     return Character.build(**random_choice(chars, weights=weights))
 
 

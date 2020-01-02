@@ -80,6 +80,7 @@ class Character(RowData):
     image_url: NonObligatory[Optional[str]] = Unavailable
     series: NonObligatory[str] = Unavailable
     rarity: NonObligatory[Rarity] = Unavailable
+    batch: NonObligatory[Batch] = Unavailable
 
 
 @dataclass
@@ -112,8 +113,7 @@ class Waifu(RowData):
 
 @dataclass
 class Pack(RowData):
-    id: int
-    name: NonObligatory[str] = Unavailable
+    name: str
     cost: NonObligatory[int] = Unavailable
     description: NonObligatory[str] = Unavailable
     start_date: NonObligatory[str] = Unavailable
@@ -122,5 +122,4 @@ class Pack(RowData):
 
 @dataclass
 class Batch(RowData):
-    id: int
     name: NonObligatory[str] = Unavailable
