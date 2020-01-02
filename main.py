@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 from data import CONSTANTS
 from api.shinobu import Shinobu
 from utils.setup_logging import setup_logging
