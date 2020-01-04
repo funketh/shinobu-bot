@@ -10,8 +10,8 @@ from utils.database import DB
 def new_mal_content(db: DB, content_type: str, user_id: int, mal_username: str)\
         -> Generator[Tuple[int, int, int], None, None]:
     d = feedparser.parse(
-        f"https://myanimelist.net/rss.php?type=r"
-        f"{(content_type == 'anime' and 'w') or (content_type == 'manga' and 'm')}"
+        f"https://myanimelist.net/rss.php?type="
+        f"{(content_type == 'anime' and 'rwe') or (content_type == 'manga' and 'rrm')}"
         f"&u={mal_username}"
     )
     already_rewarded = dict(db.execute(
