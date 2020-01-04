@@ -23,6 +23,7 @@ def new_mal_content(db: DB, content_type: str, user_id: int, mal_username: str)\
         consumed_amount = int(re.match(r'.* - (\d+) of .* episodes', item.description).group(1))
         old_amount = already_rewarded.get(series_id, 0)
         if old_amount < consumed_amount:
+            already_rewarded[series_id] = consumed_amount
             yield series_id, old_amount, consumed_amount
 
 
