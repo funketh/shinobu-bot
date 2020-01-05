@@ -98,16 +98,18 @@ def give_waifu(db: DB, user: User, character: Character, new_rarity: Rarity) -> 
         new_rarity = Rarity.build(**db.execute('SELECT * FROM rarity WHERE value=?',
                                                [waifu.rarity.value + 1]).fetchone())
         db.execute('UPDATE waifu SET rarity=? WHERE id=?', [new_rarity.value, waifu.id])
-        waifu.rarity = new_rarity
         duplicate = Upgrade(new_rarity)
     else:
         waifu.rarity = Rarity.build(**db.execute('SELECT * FROM rarity WHERE value=?',
                                                  [waifu.rarity.value]).fetchone())
         lower, higher = sorted([new_rarity, waifu.rarity], key=lambda r: r.value)
         db.execute('UPDATE waifu SET rarity=? WHERE id=?', [higher.value, waifu.id])
-        waifu.rarity = higher
         duplicate = Refund(lower.refund)
         add_money(db, user.id, duplicate.amount)
+
+    waifu.rarity = new_rarity
+    waifu.character = character
+    waifu.user = user
 
     return waifu, duplicate
 
