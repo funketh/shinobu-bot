@@ -15,9 +15,9 @@ def new_mal_content(db: DB, content_type: str, user_id: int, mal_username: str) 
         [content_type, user_id]
     ).fetchall())
     if content_type == 'anime':
-        rss_types = ['rwe', 'rw']
+        rss_types = {'rwe', 'rw'}
     elif content_type == 'manga':
-        rss_types = ['rrm', 'rm']
+        rss_types = {'rrm', 'rm'}
     else:
         raise ValueError(f'unsupported {content_type=}')
     d1, d2 = [feedparser.parse(f"https://myanimelist.net/rss.php?type={rss_type}&u={mal_username}")
