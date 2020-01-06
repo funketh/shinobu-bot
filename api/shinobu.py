@@ -37,9 +37,9 @@ class Shinobu(commands.Bot):
         await self.update_user_database()
 
     async def on_ready(self):
+        await self.update_user_database()
         await self.reload_all_extensions()
         logging.info(f'Logged on as {self.user}!')
-        await self.update_user_database()
 
     async def on_command_error(self, ctx: Context, exception: Exception):
         cog = ctx.cog
