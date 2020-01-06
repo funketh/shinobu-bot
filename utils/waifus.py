@@ -38,7 +38,7 @@ async def buy_pack(db: DB, user_id: int, pack_name: str) -> Tuple[Waifu, Duplica
             pack = Pack.build(**db.execute(f'SELECT * FROM pack WHERE '
                                            f'{CURRENT_PREDICATE} AND name LIKE ?', [pack_name]).fetchone())
         except AttributeError:
-            raise UnknownPackName
+            raise UnknownPackName(f"There's no pack named {pack_name}!")
         add_money(db, user.id, -pack.cost)
         character, rarity = pick_from_pack(db, pack.name)
         return give_waifu(db, user, character, rarity)
@@ -48,7 +48,7 @@ def add_money(db: DB, user_id: int, amount: int):
     try:
         db.execute('UPDATE user SET balance=balance+? WHERE id=?', [amount, user_id])
     except sqlite3.IntegrityError:
-        raise NotEnoughMoney
+        raise NotEnoughMoney(f'<@{user_id}> does not have enough money!')
 
 
 def pick_from_pack(db: DB, pack_name: str) -> Tuple[Character, Rarity]:

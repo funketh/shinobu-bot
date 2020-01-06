@@ -35,13 +35,7 @@ class WaifuShop(commands.Cog):
     async def pack_buy(self, ctx: Context, pack_name: str):
         """Buy and open a pack"""
         db = database.connect()
-        try:
-            waifu, duplicate = await buy_pack(db, ctx.author.id, pack_name)
-        except NotEnoughMoney:
-            return await ctx.error("You don't have enough money to buy that pack!")
-        except UnknownPackName:
-            return await ctx.error(f"Unknown pack name. Type `{CMD_PREFIX}{self.pack_list.name}` "
-                                   f"for a list of available packs.")
+        waifu, duplicate = await buy_pack(db, ctx.author.id, pack_name)
         embed = waifu_embed(waifu)
 
         if duplicate is not None:
@@ -85,7 +79,7 @@ class WaifuShop(commands.Cog):
             waifu = find_waifu(db, ctx.author.id, ' '.join(search_terms))
             embed = waifu_embed(waifu)
             confirmation_msg = await ctx.send(
-                'Do you really want to get a refund for this waifu?', embed=embed)
+                f'Do you really want to get a refund for this waifu for {waifu.rarity.refund} {CURRENCY}?', embed=embed)
             if await ctx.confirm(confirmation_msg):
                 add_money(db, ctx.author.id, waifu.rarity.refund)
                 db.execute('DELETE FROM waifu WHERE id=?', [waifu.id])
