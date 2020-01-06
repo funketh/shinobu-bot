@@ -17,9 +17,11 @@ class Shinobu(commands.Bot):
     @staticmethod
     async def _extension_modules():
         ext = 'extensions'
-        for file_name in os.listdir(ext):
-            if file_name.endswith('.py'):
-                yield f'{ext}.{file_name[:-3]}'
+        for path in os.listdir(ext):
+            if path.endswith('.py'):
+                yield f'{ext}.{path[:-3]}'
+            elif os.path.isdir(f'{ext}/{path}') and path != '__pycache__':
+                yield f'{ext}.{path}'
 
     async def reload_all_extensions(self):
         async for ext in self._extension_modules():

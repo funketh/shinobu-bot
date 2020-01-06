@@ -4,11 +4,10 @@ import discord
 from discord.ext import commands
 
 from api.my_context import Context
-from api.shinobu import Shinobu
-from data.CONSTANTS import CURRENCY, CMD_PREFIX
-from extensions import waifu_transactions
+from data.CONSTANTS import CURRENCY
+from extensions.waifus import transactions
 from utils import database
-from utils.waifus import buy_pack, CURRENT_PREDICATE, NotEnoughMoney, UnknownPackName, list_waifus, waifu_embed, \
+from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, waifu_embed, \
     add_money, Refund, Upgrade, find_waifu
 
 
@@ -31,7 +30,7 @@ class WaifuShop(commands.Cog):
         await ctx.send(embed=embed)
 
     @pack.command(name='buy', aliases=['b'])
-    @waifu_transactions.forbid
+    @transactions.forbid
     async def pack_buy(self, ctx: Context, pack_name: str):
         """Buy and open a pack"""
         db = database.connect()
@@ -72,7 +71,7 @@ class WaifuShop(commands.Cog):
         await ctx.send(embed=waifu_embed(waifu))
 
     @waifu.command(name='refund', aliases=['r'])
-    @waifu_transactions.forbid
+    @transactions.forbid
     async def waifu_refund(self, ctx: Context, *search_terms: str):
         """Get a refund for a waifu"""
         with database.connect() as db:
@@ -88,7 +87,7 @@ class WaifuShop(commands.Cog):
                 await ctx.error('Cancelled refund.')
 
     @waifu.command(name='upgrade', aliases=['u', 'up'])
-    @waifu_transactions.forbid
+    @transactions.forbid
     async def waifu_upgrade(self, ctx: Context, *search_terms: str):
         """Upgrade a waifu"""
         with database.connect() as db:
@@ -107,7 +106,3 @@ class WaifuShop(commands.Cog):
                 await ctx.info('Success!')
             else:
                 await ctx.error('Cancelled upgrade.')
-
-
-def setup(bot: Shinobu):
-    bot.add_cog(WaifuShop())
