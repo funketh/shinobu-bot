@@ -36,7 +36,7 @@ class WaifuTransfer(Change):
 
     async def execute(self, db: DB):
         try:
-            db.execute('UPDATE waifu SET user=? WHERE id=?', [self.waifu.id, self.new_owner_id])
+            db.execute('UPDATE waifu SET user=? WHERE id=?', [self.new_owner_id, self.waifu.id])
         except sqlite3.IntegrityError:
             raise ValueError("You can't give someone a waifu they already own!")
 
