@@ -12,10 +12,10 @@ CURRENT_PREDICATE = "((pack.start_date <= CURRENT_DATE) " \
                     " AND (pack.end_date IS NULL OR pack.end_date >= CURRENT_DATE))"
 
 
-class NotEnoughMoney(BaseException): pass
+class NotEnoughMoney(Exception): pass
 
 
-class UnknownPackName(BaseException): pass
+class UnknownPackName(Exception): pass
 
 
 @dataclass(frozen=True)
@@ -37,7 +37,7 @@ async def buy_pack(db: DB, user_id: int, pack_name: str) -> Tuple[Waifu, Duplica
         try:
             pack = Pack.build(**db.execute(f'SELECT * FROM pack WHERE '
                                            f'{CURRENT_PREDICATE} AND name LIKE ?', [pack_name]).fetchone())
-        except AttributeError:
+        except TypeError:
             raise UnknownPackName(f"There's no pack named {pack_name}!")
         add_money(db, user.id, -pack.cost)
         character, rarity = pick_from_pack(db, pack.name)
@@ -47,8 +47,8 @@ async def buy_pack(db: DB, user_id: int, pack_name: str) -> Tuple[Waifu, Duplica
 def add_money(db: DB, user_id: int, amount: int):
     try:
         db.execute('UPDATE user SET balance=balance+? WHERE id=?', [amount, user_id])
-    except sqlite3.IntegrityError:
-        raise NotEnoughMoney(f'<@{user_id}> does not have enough money!')
+    except sqlite3.IntegrityError as e:
+        raise NotEnoughMoney(f'<@{user_id}> does not have enough money!') from e
 
 
 def pick_from_pack(db: DB, pack_name: str) -> Tuple[Character, Rarity]:
