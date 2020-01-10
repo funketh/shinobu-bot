@@ -1,8 +1,9 @@
-import discord
 import logging
 import os
 import re
 import traceback
+
+import discord
 from discord.ext import commands
 
 from api.my_context import Context
@@ -10,10 +11,6 @@ from utils import database
 
 
 class Shinobu(commands.Bot):
-
-    def __init__(self, command_prefix, **options):
-        super().__init__(command_prefix, **options)
-
     @staticmethod
     async def _extension_modules():
         ext = 'extensions'
@@ -44,10 +41,9 @@ class Shinobu(commands.Bot):
         logging.info(f'Logged on as {self.user}!')
 
     async def on_command_error(self, ctx: Context, exception: Exception):
-        cog = ctx.cog
         if (self.extra_events.get('on_command_error', None)
                 or hasattr(ctx.command, 'on_error')
-                or (cog and cog._get_overridden_method(cog.cog_command_error) is not None)
+                or (ctx.cog and ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None)
                 or isinstance(exception, commands.CommandNotFound)):
             return
         await ctx.error(re.sub(
