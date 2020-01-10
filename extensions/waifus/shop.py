@@ -5,7 +5,7 @@ from discord.ext import commands
 
 from api.my_context import Context
 from data.CONSTANTS import CURRENCY
-from extensions.waifus import transactions
+from extensions.waifus import trade
 from utils import database
 from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, waifu_embed, \
     add_money, Refund, Upgrade, find_waifu
@@ -30,7 +30,7 @@ class WaifuShop(commands.Cog):
         await ctx.send(embed=embed)
 
     @pack.command(name='buy', aliases=['b'])
-    @transactions.forbid
+    @trade.forbid
     async def pack_buy(self, ctx: Context, pack_name: str):
         """Buy and open a pack"""
         db = database.connect()
@@ -71,7 +71,7 @@ class WaifuShop(commands.Cog):
         await ctx.send(embed=waifu_embed(waifu))
 
     @waifu.command(name='refund', aliases=['r'])
-    @transactions.forbid
+    @trade.forbid
     async def waifu_refund(self, ctx: Context, *search_terms: str):
         """Get a refund for a waifu"""
         with database.connect() as db:
@@ -87,7 +87,7 @@ class WaifuShop(commands.Cog):
                 await ctx.error('Cancelled refund.')
 
     @waifu.command(name='upgrade', aliases=['u', 'up'])
-    @transactions.forbid
+    @trade.forbid
     async def waifu_upgrade(self, ctx: Context, *search_terms: str):
         """Upgrade a waifu"""
         with database.connect() as db:

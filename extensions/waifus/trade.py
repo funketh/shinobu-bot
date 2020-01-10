@@ -97,23 +97,23 @@ def require(func: Callable[..., Coroutine]):
     return wrapper
 
 
-class Transactions(commands.Cog):
+class Trade(commands.Cog):
     @commands.group(aliases=['t'], invoke_without_command=True)
-    async def transaction(self, ctx: Context):
+    async def trade(self, ctx: Context):
         """Trade anything with anyone"""
         await ctx.send_help(ctx.command)
 
-    @transaction.command(name='cancel', aliases=['c'])
+    @trade.command(name='cancel', aliases=['c'])
     @require
-    async def transaction_cancel(self, ctx: Context):
+    async def trade_cancel(self, ctx: Context):
         """Cancel your transaction."""
         change_list = _CHANGES[ctx.author]
         async with change_list.lock:
             change_list.clear()
             await ctx.info(f"Cancelled {ctx.author.mention}'s transaction.")
 
-    @transaction.command(name='waifu', aliases=['w'])
-    async def transaction_waifu(self, ctx: Context, partner: discord.User, *search_terms):
+    @trade.command(name='waifu', aliases=['w'])
+    async def trade_waifu(self, ctx: Context, partner: discord.User, *search_terms):
         """Give one of your waifus to the specified user"""
         db = database.connect()
         waifu = find_waifu(db, ctx.author.id, ' '.join(search_terms))
@@ -123,8 +123,8 @@ class Transactions(commands.Cog):
             change_list.append(transfer)
         await ctx.info(f"Queued action: {transfer}")
 
-    @transaction.command(name='money', aliases=['m'])
-    async def transaction_money(self, ctx: Context, partner: discord.User, amount: int):
+    @trade.command(name='money', aliases=['m'])
+    async def trade_money(self, ctx: Context, partner: discord.User, amount: int):
         """Give money to someone"""
         transfer = MoneyTransfer(amount=amount, from_id=ctx.author.id, to_id=partner.id)
         change_list = _CHANGES[ctx.author]
@@ -132,9 +132,9 @@ class Transactions(commands.Cog):
             change_list.append(transfer)
         await ctx.info(f"Queued action: {transfer}")
 
-    @transaction.command(name='sign', aliases=['s'])
+    @trade.command(name='sign', aliases=['s'])
     @require
-    async def transaction_sign(self, ctx: Context, *signers: discord.User):
+    async def trade_sign(self, ctx: Context, *signers: discord.User):
         """Execute the transactions of every specified signer including yourself"""
         signers: Set[discord.User] = {ctx.author, *signers}
         async with AsyncExitStack() as stack:
