@@ -43,7 +43,7 @@ class Economy(commands.Cog):
                                  [user.id]).fetchone()['balance']
         await ctx.info(f'{user.mention}\'s balance: {balance} {CURRENCY}')
 
-    @tasks.loop(hours=8)
+    @tasks.loop(hours=6)
     async def passive_income(self):
         if self.passive_income.current_loop == 0:
             return
