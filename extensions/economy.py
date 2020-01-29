@@ -45,6 +45,8 @@ class Economy(commands.Cog):
 
     @tasks.loop(hours=8)
     async def passive_income(self):
+        if self.passive_income.current_loop == 0:
+            return
         with database.connect() as db:
             db.execute('UPDATE user SET income=MIN(income+1, 25)')
 
