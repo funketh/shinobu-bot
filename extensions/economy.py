@@ -49,6 +49,7 @@ class Economy(commands.Cog):
             return
         with database.connect() as db:
             db.execute('UPDATE user SET income=MIN(income+1, 25)')
+        logger.info('increased income of users by 1')
 
     @commands.command(aliases=['i'])
     async def income(self, ctx: Context):
@@ -57,6 +58,7 @@ class Economy(commands.Cog):
             amount = db.execute('SELECT income FROM user WHERE id=?', [ctx.author.id]).fetchone()[0]
             db.execute('UPDATE user SET balance=balance+?, income=0 WHERE id=?', [amount, ctx.author.id])
         await ctx.info(f'Withdrew {amount} {CURRENCY}')
+        logger.info(f'{ctx.author.name} withdrew {amount} from their passive income')
 
     @tasks.loop(minutes=30)
     async def reward_media_consumption(self):
