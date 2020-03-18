@@ -1,5 +1,6 @@
 import logging
 from collections import Counter
+from datetime import datetime, timedelta
 from typing import Optional, List, Tuple
 
 import discord
@@ -10,6 +11,7 @@ from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY
 from utils import database
 from utils import myanimelist_rss as mal_rss
+from utils.database import User
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +20,6 @@ class Economy(commands.Cog):
     def __init__(self, bot: Shinobu):
         self.bot = bot
         self.birthday.start()
-        self.passive_income.start()
         self.reward_media_consumption.start()
 
     async def on_ready(self):
@@ -43,22 +44,21 @@ class Economy(commands.Cog):
                                  [user.id]).fetchone()['balance']
         await ctx.info(f'{user.mention}\'s balance: {balance} {CURRENCY}')
 
-    @tasks.loop(hours=6)
-    async def passive_income(self):
-        if self.passive_income.current_loop == 0:
-            return
-        with database.connect() as db:
-            db.execute('UPDATE user SET income=MIN(income+1, 25)')
-        logger.info('increased income of users by 1')
-
     @commands.command(aliases=['i'])
     async def income(self, ctx: Context):
         """Withdraw accumulated passive income"""
+        income_in_seconds = (3600 * 5)
         with database.connect() as db:
-            amount = db.execute('SELECT income FROM user WHERE id=?', [ctx.author.id]).fetchone()[0]
-            db.execute('UPDATE user SET balance=balance+?, income=0 WHERE id=?', [amount, ctx.author.id])
-        await ctx.info(f'Withdrew {amount} {CURRENCY}')
-        logger.info(f'{ctx.author.name} withdrew {amount} from their passive income')
+            user = User.build(**db.execute('SELECT * FROM user WHERE id=?', [ctx.author.id]).fetchone())
+            last_withdrawal = datetime.fromisoformat(user.last_withdrawal)
+            full_delta = datetime.today() - last_withdrawal
+            income = int(full_delta.total_seconds() // income_in_seconds)
+            rewarded_delta = timedelta(seconds=income * income_in_seconds)
+            new_last_withdrawal = last_withdrawal + rewarded_delta
+            db.execute('UPDATE user SET balance=balance+?, last_withdrawal=? WHERE id=?',
+                       [income, new_last_withdrawal, ctx.author.id])
+        await ctx.info(f'Withdrew {income} {CURRENCY}')
+        logger.info(f'{ctx.author.name} withdrew {income} from their passive income')
 
     @tasks.loop(minutes=30)
     async def reward_media_consumption(self):

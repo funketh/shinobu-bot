@@ -4,6 +4,7 @@ import sqlite3
 from collections import defaultdict
 
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Optional, Union, TypeVar, Type, Any, DefaultDict, Dict, Generator, List
 
 from data.CONSTANTS import DB_PATH
@@ -98,7 +99,7 @@ class Rarity(RowData):
 class User(RowData):
     id: int
     balance: NonObligatory[int] = Unavailable
-    income: NonObligatory[int] = Unavailable
+    last_withdrawal: NonObligatory[str] = Unavailable
     birthday: NonObligatory[str] = Unavailable
     mal_username: NonObligatory[str] = Unavailable
 
