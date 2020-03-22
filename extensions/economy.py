@@ -52,9 +52,10 @@ class Economy(commands.Cog):
             user = User.build(**db.execute('SELECT * FROM user WHERE id=?', [ctx.author.id]).fetchone())
             last_withdrawal = datetime.fromisoformat(user.last_withdrawal)
             full_delta = datetime.today() - last_withdrawal
-            income = int(full_delta.total_seconds() // income_in_seconds)
-            rewarded_delta = timedelta(seconds=income * income_in_seconds)
+            full_income = int(full_delta.total_seconds() // income_in_seconds)
+            rewarded_delta = timedelta(seconds=full_income * income_in_seconds)
             new_last_withdrawal = last_withdrawal + rewarded_delta
+            income = min(full_income, 10)
             db.execute('UPDATE user SET balance=balance+?, last_withdrawal=? WHERE id=?',
                        [income, new_last_withdrawal, ctx.author.id])
         await ctx.info(f'Withdrew {income} {CURRENCY}')
