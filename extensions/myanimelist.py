@@ -6,7 +6,7 @@ from typing import Optional
 from api.my_context import Context
 from api.shinobu import Shinobu
 from utils.bing_search import search, first_match
-from utils.myanimelist_scraper import Anime
+from utils.mal_scraper import Anime
 
 
 class MyAnimeList(commands.Cog):

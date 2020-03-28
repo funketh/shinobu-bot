@@ -10,7 +10,7 @@ from api.my_context import Context
 from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY
 from utils import database
-from utils import myanimelist_rss as mal_rss
+from utils import mal_rss
 from utils.database import User
 
 logger = logging.getLogger(__name__)
