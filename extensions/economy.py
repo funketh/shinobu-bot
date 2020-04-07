@@ -52,7 +52,7 @@ class Economy(commands.Cog):
                     income_msg = f'  (Has yet to withdraw {income} {CURRENCY})'
             else:
                 income_msg = ''
-        await ctx.info(f'{user.mention}\'s balance: {user_data.balance} {CURRENCY}{income_msg}')
+        await ctx.info(f'{user.mention}\'s balance: {user_data.balance + income} {CURRENCY}{income_msg}')
 
     @tasks.loop(hours=1)
     async def reward_media_consumption(self):
