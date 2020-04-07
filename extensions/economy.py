@@ -39,20 +39,20 @@ class Economy(commands.Cog):
     async def balance(self, ctx: Context, user: Optional[discord.User] = None):
         """Get a user's balance"""
         user = user or ctx.author
-
         with database.connect() as db:
             user_data = User.build(**db.execute('SELECT * FROM user WHERE id=?', [user.id]).fetchone())
             income, new_last_withdrawal = income_and_new_last_withdrawal(user_data)
-            if user == ctx.author:
-                db.execute('UPDATE user SET balance=balance+?, last_withdrawal=? WHERE id=?',
-                           [income, new_last_withdrawal, user.id])
-                income_msg = f'Withdrew {income} {CURRENCY}'
-                logger.info(f'{ctx.author.name} withdrew {income} from their passive income')
+            if income:
+                if user == ctx.author:
+                    db.execute('UPDATE user SET balance=balance+?, last_withdrawal=? WHERE id=?',
+                               [income, new_last_withdrawal, user.id])
+                    income_msg = f' (Withdrew {income} {CURRENCY})'
+                    logger.info(f'{ctx.author.name} withdrew {income} from their passive income')
+                else:
+                    income_msg = f' (Has yet to withdraw {income} {CURRENCY})'
             else:
-                income_msg = f'Has yet to withdraw {income} {CURRENCY}'
-
-        balance_msg = f'{user.mention}\'s balance: {user_data.balance} {CURRENCY}'
-        await ctx.info(f'{balance_msg} ({income_msg})')
+                income_msg = ''
+        await ctx.info(f'{user.mention}\'s balance: {user_data.balance} {CURRENCY}{income_msg}')
 
     @tasks.loop(hours=1)
     async def reward_media_consumption(self):
