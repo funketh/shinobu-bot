@@ -46,10 +46,10 @@ class Economy(commands.Cog):
                 if user == ctx.author:
                     db.execute('UPDATE user SET balance=balance+?, last_withdrawal=? WHERE id=?',
                                [income, new_last_withdrawal, user.id])
-                    income_msg = f' (Withdrew {income} {CURRENCY})'
+                    income_msg = f'  (Withdrew {income} {CURRENCY})'
                     logger.info(f'{ctx.author.name} withdrew {income} from their passive income')
                 else:
-                    income_msg = f' (Has yet to withdraw {income} {CURRENCY})'
+                    income_msg = f'  (Has yet to withdraw {income} {CURRENCY})'
             else:
                 income_msg = ''
         await ctx.info(f'{user.mention}\'s balance: {user_data.balance} {CURRENCY}{income_msg}')
