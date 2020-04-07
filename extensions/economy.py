@@ -39,29 +39,22 @@ class Economy(commands.Cog):
     async def balance(self, ctx: Context, user: Optional[discord.User] = None):
         """Get a user's balance"""
         user = user or ctx.author
-        with database.connect() as db:
-            balance = db.execute('SELECT balance FROM user WHERE id=?',
-                                 [user.id]).fetchone()['balance']
-        await ctx.info(f'{user.mention}\'s balance: {balance} {CURRENCY}')
 
-    @commands.command(aliases=['i'])
-    async def income(self, ctx: Context):
-        """Withdraw accumulated passive income"""
-        income_in_seconds = (3600 * 5)
         with database.connect() as db:
-            user = User.build(**db.execute('SELECT * FROM user WHERE id=?', [ctx.author.id]).fetchone())
-            last_withdrawal = datetime.fromisoformat(user.last_withdrawal)
-            full_delta = datetime.today() - last_withdrawal
-            full_income = int(full_delta.total_seconds() // income_in_seconds)
-            rewarded_delta = timedelta(seconds=full_income * income_in_seconds)
-            new_last_withdrawal = last_withdrawal + rewarded_delta
-            income = min(full_income, 10)
-            db.execute('UPDATE user SET balance=balance+?, last_withdrawal=? WHERE id=?',
-                       [income, new_last_withdrawal, ctx.author.id])
-        await ctx.info(f'Withdrew {income} {CURRENCY}')
-        logger.info(f'{ctx.author.name} withdrew {income} from their passive income')
+            user_data = User.build(**db.execute('SELECT * FROM user WHERE id=?', [user]).fetchone())
+            income, new_last_withdrawal = income_and_new_last_withdrawal(user_data)
+            if user == ctx.author:
+                db.execute('UPDATE user SET balance=balance+?, last_withdrawal=? WHERE id=?',
+                           [income, new_last_withdrawal, user])
+                income_msg = f'Withdrew {income} {CURRENCY}'
+                logger.info(f'{ctx.author.name} withdrew {income} from their passive income')
+            else:
+                income_msg = f'Has yet to withdraw {income} {CURRENCY}'
 
-    @tasks.loop(minutes=30)
+        balance_msg = f'{user.mention}\'s balance: {user_data.balance} {CURRENCY}'
+        await ctx.info(f'{balance_msg} ({income_msg})')
+
+    @tasks.loop(hours=1)
     async def reward_media_consumption(self):
         logger.debug('rewarding media consumption...')
         db = database.connect()
@@ -93,6 +86,17 @@ class Economy(commands.Cog):
 
 def add_years(date_: str, amount: int) -> str:
     return str(int(date_[:4]) + amount) + date_[4:]
+
+
+def income_and_new_last_withdrawal(user: User) -> Tuple[int, datetime]:
+    income_in_seconds = (3600 * 5)
+    last_withdrawal = datetime.fromisoformat(user.last_withdrawal)
+    full_delta = datetime.today() - last_withdrawal
+    full_income = int(full_delta.total_seconds() // income_in_seconds)
+    rewarded_delta = timedelta(seconds=full_income * income_in_seconds)
+    new_last_withdrawal = last_withdrawal + rewarded_delta
+    income = min(full_income, 10)
+    return income, new_last_withdrawal
 
 
 def setup(bot: Shinobu):
