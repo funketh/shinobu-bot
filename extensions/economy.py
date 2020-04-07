@@ -45,7 +45,7 @@ class Economy(commands.Cog):
             income, new_last_withdrawal = income_and_new_last_withdrawal(user_data)
             if user == ctx.author:
                 db.execute('UPDATE user SET balance=balance+?, last_withdrawal=? WHERE id=?',
-                           [income, new_last_withdrawal, user])
+                           [income, new_last_withdrawal, user.id])
                 income_msg = f'Withdrew {income} {CURRENCY}'
                 logger.info(f'{ctx.author.name} withdrew {income} from their passive income')
             else:
