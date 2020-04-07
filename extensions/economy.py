@@ -41,7 +41,7 @@ class Economy(commands.Cog):
         user = user or ctx.author
 
         with database.connect() as db:
-            user_data = User.build(**db.execute('SELECT * FROM user WHERE id=?', [user]).fetchone())
+            user_data = User.build(**db.execute('SELECT * FROM user WHERE id=?', [user.id]).fetchone())
             income, new_last_withdrawal = income_and_new_last_withdrawal(user_data)
             if user == ctx.author:
                 db.execute('UPDATE user SET balance=balance+?, last_withdrawal=? WHERE id=?',
