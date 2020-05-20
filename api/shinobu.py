@@ -48,6 +48,10 @@ class Shinobu(commands.Bot):
                 or isinstance(exception, commands.CommandNotFound)):
             return
 
+        if isinstance(exception, commands.CommandInvokeError):
+            # "unbox" errors produced while invoking a command
+            exception = exception.original
+
         if isinstance(exception, ExpectedCommandError):
             # if the error was expected then simply send the exception message to the user
             await ctx.error(exception.message)
