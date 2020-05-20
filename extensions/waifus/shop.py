@@ -40,10 +40,8 @@ class WaifuShop(commands.Cog):
         if duplicate is not None:
             if isinstance(duplicate, Refund):
                 duplicate_msg = f"Your duplicate waifu got refunded for {duplicate.amount} {CURRENCY}"
-            elif isinstance(duplicate, Upgrade):
+            else:  # isinstance(duplicate, Upgrade)
                 duplicate_msg = f"Your waifu got upgraded to **{duplicate.upgraded_rarity.name}**!"
-            else:
-                raise TypeError('Unknown Duplicate Type')
             embed.add_field(name='Duplicate', value=duplicate_msg)
 
         await ctx.send(embed=embed)

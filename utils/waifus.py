@@ -6,16 +6,16 @@ from typing import Tuple, Generator, List, Union
 import discord
 from fuzzywuzzy import process
 
+from api.expected_errors import ExpectedCommandError
 from utils.database import DB, Waifu, Pack, Character, User, Rarity
+
 
 CURRENT_PREDICATE = "((pack.start_date <= CURRENT_DATE) " \
                     " AND (pack.end_date IS NULL OR pack.end_date >= CURRENT_DATE))"
 
 
-class NotEnoughMoney(Exception): pass
-
-
-class UnknownPackName(Exception): pass
+class NotEnoughMoney(ExpectedCommandError): pass
+class UnknownPackName(ExpectedCommandError): pass
 
 
 @dataclass(frozen=True)
@@ -118,7 +118,7 @@ def find_waifu(*args, **kwargs) -> Waifu:
     try:
         return next(find_waifus(*args, **kwargs))
     except StopIteration as e:
-        raise ValueError("You don't have any waifus!") from e
+        raise ExpectedCommandError("You don't have any waifus!") from e
 
 
 def find_waifus(db: DB, user_id: int, query: str) -> Generator[Waifu, None, None]:

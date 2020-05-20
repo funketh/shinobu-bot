@@ -1,4 +1,7 @@
-class ConstraintError(ValueError):
+from api.expected_errors import ExpectedCommandError
+
+
+class ConstraintError(ExpectedCommandError):
     pass
 
 

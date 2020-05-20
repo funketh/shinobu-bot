@@ -11,6 +11,7 @@ from typing import List, Coroutine, Callable, DefaultDict, Protocol, Set
 import discord
 from discord.ext import commands
 
+from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
 from data.CONSTANTS import CURRENCY
 from utils import database
@@ -38,7 +39,7 @@ class WaifuTransfer(Change):
         try:
             db.execute('UPDATE waifu SET user=? WHERE id=?', [self.new_owner_id, self.waifu.id])
         except sqlite3.IntegrityError:
-            raise ValueError("You can't give someone a waifu they already own!")
+            raise ExpectedCommandError("You can't give someone a waifu they already own!")
 
     def __str__(self):
         return (
@@ -80,7 +81,7 @@ def forbid(func: Callable[..., Coroutine]):
         if not _CHANGES[ctx.author]:
             await func(*args, **kwargs)
         else:
-            raise ValueError("You can't do this while you're in a transaction!")
+            raise ExpectedCommandError("You can't do this while you're in a transaction!")
 
     return wrapper
 
@@ -92,7 +93,7 @@ def require(func: Callable[..., Coroutine]):
         if _CHANGES[ctx.author]:
             await func(*args, **kwargs)
         else:
-            raise ValueError("You can only do this while you're in a transaction!")
+            raise ExpectedCommandError("You can only do this while you're in a transaction!")
 
     return wrapper
 
