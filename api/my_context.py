@@ -35,10 +35,12 @@ class Context(commands.Context):
         user = user or self.author
         await message.add_reaction(yes)
         await message.add_reaction(no)
-        check = lambda r, u: r.message.id == message.id and u == user and str(r.emoji) in (yes, no)
+
+        def user_answered(r: discord.Reaction, u: discord.User):
+            return r.message.id == message.id and u == user and str(r.emoji) in (yes, no)
 
         try:
-            reaction, _ = await self.bot.wait_for('reaction_add', timeout=timeout, check=check)
+            reaction, _ = await self.bot.wait_for('reaction_add', timeout=timeout, check=user_answered)
         except asyncio.TimeoutError:
             return False
         return reaction.emoji == yes
@@ -47,11 +49,13 @@ class Context(commands.Context):
                                 yes: str = '👍', no: str = '👎', timeout: int = 60) -> bool:
         await message.add_reaction(yes)
         await message.add_reaction(no)
-        check = lambda r, u: r.message.id == message.id and u in users and str(r.emoji) in (yes, no)
+
+        def any_user_answered(r: discord.Reaction, u: discord.User):
+            return r.message.id == message.id and u in users and str(r.emoji) in (yes, no)
 
         while len(users) > 0:
             try:
-                reaction, _ = await self.bot.wait_for('reaction_add', timeout=timeout, check=check)
+                reaction, _ = await self.bot.wait_for('reaction_add', timeout=timeout, check=any_user_answered)
             except asyncio.TimeoutError:
                 return False
             if reaction.emoji == no:

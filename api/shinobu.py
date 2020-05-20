@@ -12,14 +12,18 @@ from utils import database
 
 
 class Shinobu(commands.Bot):
-    @staticmethod
-    async def _extension_modules():
-        ext = 'extensions'
-        for path in os.listdir(ext):
-            if path.endswith('.py'):
-                yield f'{ext}.{path[:-3]}'
-            elif os.path.isdir(f'{ext}/{path}') and path != '__pycache__':
-                yield f'{ext}.{path}'
+    async def on_ready(self):
+        await self.update_user_database()
+        await self.reload_all_extensions()
+        logging.info(f'Logged on as {self.user}!')
+
+    async def on_member_join(self, _: discord.Member):
+        await self.update_user_database()
+
+    async def update_user_database(self):
+        with database.connect() as db:
+            db.executemany('INSERT OR IGNORE INTO user(id) VALUES(?)',
+                           [[m.id] for g in self.guilds for m in g.members])
 
     async def reload_all_extensions(self):
         async for ext in self._extension_modules():
@@ -28,18 +32,15 @@ class Shinobu(commands.Bot):
             except commands.ExtensionNotLoaded:
                 self.load_extension(ext)
 
-    async def update_user_database(self):
-        with database.connect() as db:
-            db.executemany('INSERT OR IGNORE INTO user(id) VALUES(?)',
-                           [[m.id] for g in self.guilds for m in g.members])
-
-    async def on_member_join(self, _: discord.Member):
-        await self.update_user_database()
-
-    async def on_ready(self):
-        await self.update_user_database()
-        await self.reload_all_extensions()
-        logging.info(f'Logged on as {self.user}!')
+    @staticmethod
+    async def _extension_modules(root='extensions'):
+        for path in os.listdir(root):
+            # modules
+            if path.endswith('.py'):
+                yield f'{root}.{path[:-3]}'
+            # packages (subdirectories)
+            elif os.path.isdir(f'{root}/{path}') and path != '__pycache__':
+                yield f'{root}.{path}'
 
     async def on_command_error(self, ctx: Context, exception: Exception):
         if (self.extra_events.get('on_command_error', None)
@@ -63,4 +64,5 @@ class Shinobu(commands.Bot):
                          + ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)))
 
     async def get_context(self, message, *, cls=Context):
+        # inject our own Context data type
         return await super().get_context(message, cls=cls)
