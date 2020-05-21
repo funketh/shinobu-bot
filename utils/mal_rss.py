@@ -1,14 +1,14 @@
 import re
-from itertools import chain
 from typing import Tuple, Generator
 
+import aiohttp
 import feedparser
 
-from utils.mal_scraper import Anime
 from utils.database import DB
+from utils.mal_scraper import Anime
 
 
-def new_mal_content(db: DB, content_type: str, user_id: int, mal_username: str) \
+async def new_mal_content(db: DB, session: aiohttp.ClientSession, content_type: str, user_id: int, mal_username: str) \
         -> Generator[Tuple[int, int, int], None, None]:
 
     already_rewarded = dict(db.execute(
@@ -23,10 +23,13 @@ def new_mal_content(db: DB, content_type: str, user_id: int, mal_username: str) 
     else:
         raise ValueError(f'unsupported {content_type=}')
 
-    d1, d2 = [feedparser.parse(f"https://myanimelist.net/rss.php?type={rss_type}&u={mal_username}")
-              for rss_type in rss_types]
+    entries = []
+    for rss_type in rss_types:
+        async with session.get(f"https://myanimelist.net/rss.php?type={rss_type}&u={mal_username}") as resp:
+            feed = feedparser.parse(await resp.text())
+            entries.extend(feed.entries)
 
-    for item in chain(d1.entries, d2.entries):
+    for item in entries:
         series_id = int(re.match(rf'https://myanimelist\.net/{content_type}/(\d+)/.*', item.link).group(1))
         consumed_amount = int(re.match(r'.* - (\d+) of .* episodes', item.description).group(1))
         old_amount = already_rewarded.get(series_id, 0)

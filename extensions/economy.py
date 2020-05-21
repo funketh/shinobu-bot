@@ -3,6 +3,7 @@ from collections import Counter
 from datetime import datetime, timedelta
 from typing import Optional, List, Tuple
 
+import aiohttp
 import discord
 from discord.ext import commands, tasks
 
@@ -61,16 +62,17 @@ class Economy(commands.Cog):
         users = db.execute("SELECT id, mal_username FROM user WHERE mal_username > ''").fetchall()
         new_entries: List[Tuple[int, str, int, int]] = []
         rewarded_money: Counter[int, int] = Counter()
-        for u in users:
-            for content_type in ('anime',):
-                new_content = mal_rss.new_mal_content(db, content_type, u['id'], u['mal_username'])
-                for series_id, old_amount, consumed_amount in new_content:
-                    logger.info(f'user {u["id"]} consumed {consumed_amount - old_amount}'
-                                f' bits of {series_id} ({content_type})')
-                    new_entries.append((u['id'], content_type, series_id, consumed_amount))
-                    rewarded_money[u['id']] += await mal_rss.calculate_reward(
-                        content_type, series_id, consumed_amount - old_amount
-                    )
+        async with aiohttp.ClientSession() as session:
+            for u in users:
+                for content_type in ('anime',):
+                    new_content = mal_rss.new_mal_content(db, session, content_type, u['id'], u['mal_username'])
+                    async for series_id, old_amount, consumed_amount in new_content:
+                        logger.info(f'user {u["id"]} consumed {consumed_amount - old_amount}'
+                                    f' bits of {series_id} ({content_type})')
+                        new_entries.append((u['id'], content_type, series_id, consumed_amount))
+                        rewarded_money[u['id']] += await mal_rss.calculate_reward(
+                            content_type, series_id, consumed_amount - old_amount
+                        )
         with db:
             db.executemany('REPLACE INTO consumed_media(user,type,id,amount) VALUES(?,?,?,?)', new_entries)
             db.executemany('UPDATE user SET balance=balance+? WHERE id=?',
