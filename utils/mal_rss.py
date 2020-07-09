@@ -31,7 +31,7 @@ async def new_mal_content(db: DB, session: aiohttp.ClientSession, content_type: 
 
     for item in entries:
         series_id = int(re.match(rf'https://myanimelist\.net/{content_type}/(\d+)/.*', item.link).group(1))
-        consumed_amount = int(re.match(r'.* - (\d+) of .* episodes', item.description).group(1))
+        consumed_amount = int(re.match(r'.*- (\d+) of .* episodes', item.description).group(1))
         old_amount = already_rewarded.get(series_id, 0)
         if old_amount < consumed_amount:
             already_rewarded[series_id] = consumed_amount
