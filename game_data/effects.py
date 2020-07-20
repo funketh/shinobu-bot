@@ -15,7 +15,7 @@ class Damage(Effect):
 
 
 @dataclass
-class BackstabDamage(Damage):
+class AmbushDamage(Damage):
     def execute(self):
         ...  # TODO
         # if (target.exhausted): crit=True

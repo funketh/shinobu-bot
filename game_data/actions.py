@@ -19,6 +19,6 @@ class Action:
 ACTIONS = {
     1: Action("Sword Slash", FIRE, PHYSICAL, effects=[Damage(7)],
               description="Ancient warriors in an eastern land invented this method of striking down your foes efficiently and succinctly."),
-    2: Action("Backstab", DARK, PHYSICAL, effects=[BackstabDamage(5)],
+    2: Action("Ambush", DARK, PHYSICAL, effects=[AmbushDamage(5)],
               description=""),
 }
