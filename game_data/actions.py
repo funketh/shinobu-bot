@@ -21,4 +21,8 @@ ACTIONS = {
               description="Ancient warriors in an eastern land invented this method of striking down your foes efficiently and succinctly."),
     2: Action("Ambush", DARK, PHYSICAL, effects=[AmbushDamage(5)],
               description=""),
+    3: Action("Explosion", FIRE, PHYSICAL, effects=[Damage(20)],
+              description=""),
+    4: Action("OwO", DARK, VERBAL,
+              description=""),
 }
