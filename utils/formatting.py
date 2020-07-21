@@ -1,4 +1,4 @@
-MAX_MESSAGE_LENGTH = 2000
+from data.CONSTANTS import MAX_MESSAGE_LENGTH
 
 
 def paginate(text: str, prefix: str = '', suffix: str = ''):

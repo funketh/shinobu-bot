@@ -7,6 +7,7 @@ from api.my_context import Context
 from data.CONSTANTS import CURRENCY
 from extensions.waifus import trade
 from utils import database
+from utils.formatting import paginate
 from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, waifu_embed, \
     add_money, Refund, Upgrade, find_waifu
 

@@ -147,7 +147,7 @@ class Trade(commands.Cog):
             changes_str = '\n'.join(str(c) for c in all_changes)
             msg = await ctx.send(f"{', '.join(s.mention for s in signers)}: "
                                  f"Do you accept the following changes?\n{changes_str}")
-            if await ctx.confirm_multiuser(msg, list(signers)):
+            if await ctx.confirm_multiuser(msg, users=signers):
                 with database.connect() as db:
                     for c in all_changes:
                         await c.execute(db)
