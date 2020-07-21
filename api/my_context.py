@@ -66,8 +66,12 @@ class Context(commands.Context):
         await self.send_pager(pages, **kwargs)
 
     async def send_pager(self, pages: Sequence[str], *, timeout=600, **kwargs):
+        msg = await self.send(pages[0])
+
+        if len(pages) == 1:
+            return
+
         i = 0
-        msg = await self.send(pages[i])
         async for reaction in self.wait_for_reactions(msg, reactions=(UP, DOWN, PRINTER), timeout=timeout, **kwargs):
             if reaction.emoji == PRINTER:
                 await msg.delete()
