@@ -1,4 +1,4 @@
-from collections import Sequence
+from typing import Sequence
 from dataclasses import dataclass, field
 
 from game_data.categories import *
