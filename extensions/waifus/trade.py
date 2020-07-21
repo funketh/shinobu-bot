@@ -15,7 +15,6 @@ from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
 from data.CONSTANTS import CURRENCY
 from utils import database
-from utils.constrain import constrain
 from utils.database import DB, Waifu
 from utils.waifus import find_waifu, add_money
 
@@ -30,7 +29,8 @@ class Change(Protocol):
 
 class WaifuTransfer(Change):
     def __init__(self, waifu: Waifu, old_owner_id: int, new_owner_id: int):
-        constrain(old_owner_id != new_owner_id, "You can't give something to yourself!")
+        if old_owner_id == new_owner_id:
+            raise ExpectedCommandError("You can't give something to yourself!")
         self.waifu = waifu
         self.old_owner_id = old_owner_id
         self.new_owner_id = new_owner_id
@@ -51,8 +51,10 @@ class WaifuTransfer(Change):
 
 class MoneyTransfer(Change):
     def __init__(self, amount: int, from_id: int, to_id: int):
-        constrain(from_id != to_id, "You can't give something to yourself!")
-        constrain(amount > 0, f"You can only transfer positive amounts of {CURRENCY}!")
+        if from_id == to_id:
+            raise ExpectedCommandError("You can't give something to yourself!")
+        if amount <= 0:
+            raise ExpectedCommandError(f"You can only transfer positive amounts of {CURRENCY}!")
         self.amount = amount
         self.from_id = from_id
         self.to_id = to_id
