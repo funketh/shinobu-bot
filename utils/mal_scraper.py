@@ -49,7 +49,7 @@ class AnimeMangaAgnosticScraper(_BaseScraper):
 
     @lazy_property
     def status(self) -> Optional[str]:
-        return self.safe_single_match(r'<span.*?>Status:</span>\s*(.+?)\s')
+        return self.safe_single_match(r'<span.*?>Status:</span>\s*(.+?)\s*<')
 
 
 class Anime(AnimeMangaAgnosticScraper):
