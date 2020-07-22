@@ -1,15 +1,15 @@
 import re
-from typing import Tuple, Generator
+from typing import Tuple, AsyncIterator
 
 import aiohttp
 import feedparser
 
 from utils.database import DB
-from utils.mal_scraper import Anime
+from utils.mal_scraper import Anime, Manga
 
 
 async def new_mal_content(db: DB, session: aiohttp.ClientSession, content_type: str, user_id: int, mal_username: str) \
-        -> Generator[Tuple[int, int, int], None, None]:
+        -> AsyncIterator[Tuple[int, int, int]]:
 
     already_rewarded = dict(db.execute(
         r'SELECT id, amount FROM consumed_media WHERE type=? AND user=?',
@@ -18,8 +18,10 @@ async def new_mal_content(db: DB, session: aiohttp.ClientSession, content_type: 
 
     if content_type == 'anime':
         rss_types = {'rwe', 'rw'}
+        consumed_regex = re.compile(r'.*- (\d+) of .* episodes')
     elif content_type == 'manga':
         rss_types = {'rrm', 'rm'}
+        consumed_regex = re.compile(r'.*- (\d+) of .* chapters')
     else:
         raise ValueError(f'unsupported {content_type=}')
 
@@ -31,7 +33,7 @@ async def new_mal_content(db: DB, session: aiohttp.ClientSession, content_type: 
 
     for item in entries:
         series_id = int(re.match(rf'https://myanimelist\.net/{content_type}/(\d+)/.*', item.link).group(1))
-        consumed_amount = int(re.match(r'.*- (\d+) of .* episodes', item.description).group(1))
+        consumed_amount = int(consumed_regex.match(item.description).group(1))
         old_amount = already_rewarded.get(series_id, 0)
         if old_amount < consumed_amount:
             already_rewarded[series_id] = consumed_amount
@@ -42,6 +44,9 @@ async def calculate_reward(content_type: str, series_id: int, amount: int) -> in
     if content_type == 'anime':
         a = await Anime.from_id(series_id)
         duration = a.duration.seconds
+    elif content_type == 'manga':
+        m = await Manga.from_id(series_id)
+        chapters = m.chapters
     else:
         raise ValueError(f'unsupported {content_type=}')
     return (((duration * amount) // 60) // 5) * 1

@@ -64,7 +64,7 @@ class Economy(commands.Cog):
         rewarded_money: Counter[int, int] = Counter()
         async with aiohttp.ClientSession() as session:
             for u in users:
-                for content_type in ('anime',):
+                for content_type in ('anime', 'manga'):
                     new_content = mal_rss.new_mal_content(db, session, content_type, u['id'], u['mal_username'])
                     async for series_id, old_amount, consumed_amount in new_content:
                         logger.info(f'user {u["id"]} consumed {consumed_amount - old_amount}'
