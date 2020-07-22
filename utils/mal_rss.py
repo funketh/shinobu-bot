@@ -45,8 +45,11 @@ async def calculate_reward(content_type: str, series_id: int, amount: int) -> in
         a = await Anime.from_id(series_id)
         duration = a.duration.seconds
     elif content_type == 'manga':
-        m = await Manga.from_id(series_id)
-        chapters = m.chapters
+        # 5 minutes are rewarded for each chapter.
+        # For reference, myanimelist.net uses (chapter = 8 min) and (volume = 72 min).
+        # TODO: one could make this depend on whether the series is a manga or a novel
+        duration = 300
     else:
         raise ValueError(f'unsupported {content_type=}')
-    return (((duration * amount) // 60) // 5) * 1
+    # 1 is rewarded per 5 minutes
+    return (duration * amount) // 300

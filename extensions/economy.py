@@ -71,7 +71,7 @@ class Economy(commands.Cog):
                                     f' bits of {series_id} ({content_type})')
                         new_entries.append((u['id'], content_type, series_id, consumed_amount))
                         rewarded_money[u['id']] += await mal_rss.calculate_reward(
-                            content_type, series_id, consumed_amount - old_amount
+                            content_type, series_id, amount=consumed_amount - old_amount
                         )
         with db:
             db.executemany('REPLACE INTO consumed_media(user,type,id,amount) VALUES(?,?,?,?)', new_entries)
