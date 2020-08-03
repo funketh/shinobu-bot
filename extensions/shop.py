@@ -4,15 +4,14 @@ import discord
 from discord.ext import commands
 
 from api.my_context import Context
+from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY
-from extensions.waifus import trade
+from extensions import trade
 from utils import database
-from utils.formatting import paginate
-from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, waifu_embed, \
-    add_money, Refund, Upgrade, find_waifu
+from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, waifu_embed, add_money, Refund, find_waifu
 
 
-class WaifuShop(commands.Cog):
+class Shop(commands.Cog):
     @commands.group(aliases=['p'], invoke_without_command=True)
     async def pack(self, ctx: Context):
         """Get new waifus"""
@@ -45,7 +44,7 @@ class WaifuShop(commands.Cog):
                 duplicate_msg = f"Your waifu got upgraded to **{duplicate.upgraded_rarity.name}**!"
             embed.add_field(name='Duplicate', value=duplicate_msg)
 
-        await ctx.send(embed=embed)
+        msg = await ctx.send(embed=embed)
 
     @commands.group(aliases=['w'], invoke_without_command=True)
     async def waifu(self, ctx: Context):
@@ -67,7 +66,8 @@ class WaifuShop(commands.Cog):
         """Get more information on a waifu"""
         with database.connect() as db:
             waifu = find_waifu(db, ctx.author.id, ' '.join(search_terms))
-        await ctx.send(embed=waifu_embed(waifu))
+        embed = waifu_embed(waifu)
+        msg = await ctx.send(embed=embed)
 
     @waifu.command(name='refund', aliases=['r'])
     @trade.forbid
@@ -105,3 +105,7 @@ class WaifuShop(commands.Cog):
                 await ctx.info('Success!')
             else:
                 await ctx.error('Cancelled upgrade.')
+
+
+def setup(bot: Shinobu):
+    bot.add_cog(Shop())

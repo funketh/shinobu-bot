@@ -1,9 +1,7 @@
-from __future__ import annotations
-
 import sqlite3
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Optional, Union, TypeVar, Type, Any, DefaultDict, Dict, Generator, List
+from typing import Optional, Union, TypeVar, Type, Any, DefaultDict, Dict, Generator, Iterator, Mapping
 
 from data.CONSTANTS import DB_PATH
 
@@ -16,6 +14,10 @@ def connect(db_path=DB_PATH) -> DB:
     return db
 
 
+def nested_dict() -> DefaultDict:
+    return defaultdict(nested_dict)
+
+
 class _UnavailableMeta(type):
     def __getattribute__(self, name: str):
         raise AttributeError('Invalid Field Access!')
@@ -23,31 +25,27 @@ class _UnavailableMeta(type):
 
 class Unavailable(metaclass=_UnavailableMeta): pass
 
-
 T = TypeVar('T')
 NonObligatory = Union[Type[Unavailable], T]
 
 
-def nested_dict() -> DefaultDict:
-    return defaultdict(nested_dict)
-
-
+RowDataT = TypeVar('RowDataT', bound='RowData')
 @dataclass
 class RowData:
     @classmethod
-    def _get_subclasses(cls: Type[RowData]) -> Generator[Type[RowData], None, None]:
+    def _get_subclasses(cls) -> Generator[Type[RowDataT], None, None]:
         for subclass in cls.__subclasses__():
             yield from subclass._get_subclasses()
             yield subclass
 
     @classmethod
-    def _find_subclass(cls: Type[RowData], name: str) -> Optional[Type[RowData]]:
+    def _find_subclass(cls, name: str) -> Optional[Type[RowDataT]]:
         for subclass in cls._get_subclasses():
             if subclass.__name__ == name:
                 return subclass
 
     @classmethod
-    def _from_tree(cls: Type[RowData], tree: Dict[str, Any]) -> RowData:
+    def _from_tree(cls, tree: Dict[str, Any]) -> RowDataT:
         for key, value in tree.copy().items():
             if isinstance(value, dict):
                 try:
@@ -57,9 +55,9 @@ class RowData:
         return cls(**tree)
 
     @classmethod
-    def build(cls: Type[RowData], **kwargs) -> RowData:
+    def from_mapping(cls, attributes: Mapping[str, Any]) -> RowDataT:
         tree: DefaultDict[str, Any] = nested_dict()
-        for name, value in kwargs.items():
+        for name, value in attributes.items():
             subnames = name.split('.')
             subtree = tree
             for subtree_name in subnames[:-1]:
@@ -68,8 +66,14 @@ class RowData:
         return cls._from_tree(tree)
 
     @classmethod
-    def from_rows(cls: Type[RowData], rows: List[sqlite3.Row]):
-        return [cls.build(**r) for r in rows]
+    def select_one(cls, db: DB, *args, **kwargs) -> RowDataT:
+        if row := db.execute(*args, **kwargs).fetchone():
+            return cls.from_mapping(row)
+
+    @classmethod
+    def select_many(cls, db: DB, *args, **kwargs) -> Iterator[RowDataT]:
+        for row in db.execute(*args, **kwargs):
+            yield cls.from_mapping(row)
 
 
 @dataclass

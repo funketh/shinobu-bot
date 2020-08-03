@@ -11,10 +11,8 @@ from utils.mal_scraper import Anime, Manga
 async def new_mal_content(db: DB, session: aiohttp.ClientSession, content_type: str, user_id: int, mal_username: str) \
         -> AsyncIterator[Tuple[int, int, int]]:
 
-    already_rewarded = dict(db.execute(
-        r'SELECT id, amount FROM consumed_media WHERE type=? AND user=?',
-        [content_type, user_id]
-    ).fetchall())
+    already_rewarded = dict(db.execute('SELECT id, amount FROM consumed_media WHERE type=? AND user=?',
+                                       [content_type, user_id]))
 
     if content_type == 'anime':
         rss_types = {'rwe', 'rw'}

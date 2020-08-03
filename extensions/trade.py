@@ -13,6 +13,7 @@ from discord.ext import commands
 
 from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
+from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY
 from utils import database
 from utils.database import DB, Waifu
@@ -156,3 +157,7 @@ class Trade(commands.Cog):
                     await ctx.info("Successfully executed transaction.")
             else:
                 return await ctx.error("Cancelled execution! (Transaction contents are kept)")
+
+
+def setup(bot: Shinobu):
+    bot.add_cog(Trade())

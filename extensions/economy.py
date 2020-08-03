@@ -1,7 +1,7 @@
 import logging
 from collections import Counter
 from datetime import datetime, timedelta
-from typing import Optional, List, Tuple
+from typing import Optional, Tuple
 
 import aiohttp
 import discord
@@ -29,7 +29,7 @@ class Economy(commands.Cog):
     @tasks.loop(hours=24)
     async def birthday(self):
         with database.connect() as db:
-            for user_row in db.execute("SELECT * FROM user WHERE birthday == DATE('now', 'localtime')").fetchall():
+            for user_row in db.execute("SELECT * FROM user WHERE birthday == DATE('now', 'localtime')"):
                 db.execute('UPDATE user SET balance=balance+100, birthday=? WHERE id=?',
                            [add_years(user_row['birthday'], 1), user_row['id']])
                 user: discord.User = self.bot.get_user(user_row['id'])
@@ -41,7 +41,7 @@ class Economy(commands.Cog):
         """Get a user's balance"""
         user = user or ctx.author
         with database.connect() as db:
-            user_data = User.build(**db.execute('SELECT * FROM user WHERE id=?', [user.id]).fetchone())
+            user_data = User.select_one(db, 'SELECT * FROM user WHERE id=?', [user.id])
             income, new_last_withdrawal = income_and_new_last_withdrawal(user_data)
             if income:
                 if user == ctx.author:
@@ -59,24 +59,27 @@ class Economy(commands.Cog):
     async def reward_media_consumption(self):
         logger.debug('rewarding media consumption...')
         db = database.connect()
-        users = db.execute("SELECT id, mal_username FROM user WHERE mal_username > ''").fetchall()
-        new_entries: List[Tuple[int, str, int, int]] = []
-        rewarded_money: Counter[int, int] = Counter()
-        async with aiohttp.ClientSession() as session:
-            for u in users:
-                for content_type in ('anime', 'manga'):
-                    new_content = mal_rss.new_mal_content(db, session, content_type, u['id'], u['mal_username'])
-                    async for series_id, old_amount, consumed_amount in new_content:
-                        logger.info(f'user {u["id"]} consumed {consumed_amount - old_amount}'
-                                    f' bits of {series_id} ({content_type})')
-                        new_entries.append((u['id'], content_type, series_id, consumed_amount))
-                        rewarded_money[u['id']] += await mal_rss.calculate_reward(
-                            content_type, series_id, amount=consumed_amount - old_amount
-                        )
+
+        users = User.select_many(db, "SELECT * FROM user WHERE mal_username > ''")
+        rewarded_money: Counter[User, int] = Counter()
         with db:
-            db.executemany('REPLACE INTO consumed_media(user,type,id,amount) VALUES(?,?,?,?)', new_entries)
+            async with aiohttp.ClientSession() as session:
+                for user in users:
+                    for content_type in ('anime', 'manga'):
+                        new_content = mal_rss.new_mal_content(db, session, content_type, user.id, user.mal_username)
+                        async for series_id, old_amount, consumed_amount in new_content:
+                            logger.info(f'user {user.id} consumed {consumed_amount - old_amount}'
+                                        f' bits of {series_id} ({content_type})')
+                            db.execute('REPLACE INTO consumed_media(user,type,id,amount) VALUES(?,?,?,?)',
+                                       (user.id, content_type, series_id, consumed_amount))
+                            rewarded_money[user] += await mal_rss.calculate_reward(content_type, series_id,
+                                                                                   amount=consumed_amount - old_amount)
+                            # todo move calculate_reward into Anime/Manga class(look for any if statements checking for
+                            #  the content_type and move them there too)
             db.executemany('UPDATE user SET balance=balance+? WHERE id=?',
-                           [(amount, id_) for id_, amount in rewarded_money.items()])
+                           [(amount, user.id) for user, amount in rewarded_money.items()])
+
+        return rewarded_money
 
     @commands.cooldown(1, 60)
     @commands.command(aliases=['up'])
@@ -91,7 +94,7 @@ def add_years(date_: str, amount: int) -> str:
 
 
 def income_and_new_last_withdrawal(user: User) -> Tuple[int, datetime]:
-    income_in_seconds = (3600 * 5)
+    income_in_seconds = 3600 * 5
     last_withdrawal = datetime.fromisoformat(user.last_withdrawal)
     full_delta = datetime.today() - last_withdrawal
     full_income = int(full_delta.total_seconds() // income_in_seconds)

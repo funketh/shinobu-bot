@@ -29,7 +29,7 @@ class Context(commands.Context):
 
     async def confirm(self, *args, **kwargs) -> bool:
         reaction = await self.wait_for_reaction(*args, reactions=(YES, NO), **kwargs)
-        return reaction.emoji == YES
+        return reaction and reaction.emoji == YES
 
     async def confirm_multiuser(self, msg: discord.Message, users: Set[discord.User], **kwargs) -> bool:
         async for reaction in self.wait_for_reactions(msg, reactions=(YES, NO), users=users, **kwargs):
@@ -39,10 +39,8 @@ class Context(commands.Context):
                 return True
         return False
 
-    async def wait_for_reaction(self, msg: discord.Message, reactions: Iterable[str],
-                                user: Optional[discord.User] = None, **kwargs) -> Optional[discord.Reaction]:
-        user = user or self.author
-        async for reaction in self.wait_for_reactions(msg, reactions, [user], **kwargs):
+    async def wait_for_reaction(self, *args, **kwargs) -> Optional[discord.Reaction]:
+        async for reaction in self.wait_for_reactions(*args, **kwargs):
             return reaction
 
     async def wait_for_reactions(self, msg: discord.Message, reactions: Iterable[str],
@@ -51,7 +49,7 @@ class Context(commands.Context):
         for r in reactions:
             await msg.add_reaction(r)
 
-        def any_user_answered(r: discord.Reaction, u: discord.User):
+        def any_user_answered(r: discord.Reaction, u: discord.User) -> bool:
             return r.message.id == msg.id and u in users and str(r.emoji) in reactions
 
         while True:
@@ -77,10 +75,11 @@ class Context(commands.Context):
                 await msg.delete()
                 for p in pages:
                     await self.send(p)
-                return
+                break
 
-            if reaction.emoji == UP:
+            elif reaction.emoji == UP:
                 i = max(i-1, 0)
+
             elif reaction.emoji == DOWN:
                 i = min(i+1, len(pages)-1)
 

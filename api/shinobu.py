@@ -10,12 +10,14 @@ from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
 from utils import database
 
+logger = logging.getLogger(__name__)
+
 
 class Shinobu(commands.Bot):
     async def on_ready(self):
         await self.update_user_database()
         await self.reload_all_extensions()
-        logging.info(f'Logged on as {self.user}!')
+        logger.info(f'Logged on as {self.user}!')
 
     async def on_member_join(self, _: discord.Member):
         await self.update_user_database()
@@ -45,7 +47,7 @@ class Shinobu(commands.Bot):
     async def on_command_error(self, ctx: Context, exception: Exception):
         if (self.extra_events.get('on_command_error', None)
                 or hasattr(ctx.command, 'on_error')
-                or (ctx.cog and ctx.cog._get_overridden_method(ctx.cog.cog_command_error) is not None)
+                or (ctx.cog and ctx.cog._get_overridden_method(ctx.cog.cog_command_error))
                 or isinstance(exception, commands.CommandNotFound)):
             return
 
@@ -58,10 +60,10 @@ class Shinobu(commands.Bot):
             await ctx.error(exception.message)
         else:
             await ctx.error(re.sub(r'.*?(\w+?:.*)',
-                                   lambda m: m.group(1),
-                                   traceback.format_exception_only(type(exception), exception)[-1]))
-            logging.info(f'Ignoring exception in command {ctx.command}:\n'
-                         + ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)))
+                                   repl=lambda m: m.group(1),
+                                   string=traceback.format_exception_only(type(exception), exception)[-1]))
+            logger.info(f'Ignoring exception in command {ctx.command}:\n'
+                        + ''.join(traceback.format_exception(type(exception), exception, exception.__traceback__)))
 
     async def get_context(self, message, *, cls=Context):
         # inject our own Context data type
