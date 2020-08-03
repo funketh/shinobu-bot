@@ -7,6 +7,8 @@ import discord
 from fuzzywuzzy import process
 
 from api.expected_errors import ExpectedCommandError
+from api.my_context import Context
+from data.CONSTANTS import TRASH, CURRENCY
 from utils.database import DB, Waifu, Pack, Character, User, Rarity
 
 CURRENT_PREDICATE = "((pack.start_date <= CURRENT_DATE) " \
@@ -153,3 +155,21 @@ def waifu_embed(waifu: Waifu):
     if waifu.character.image_url:
         embed.set_image(url=waifu.character.image_url)
     return embed
+
+
+async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: Waifu):
+    async for reaction in ctx.wait_for_reactions(msg, reactions=(TRASH,)):
+        if reaction.emoji == TRASH:
+            confirmation_msg = await ctx.info(f'Do you really want to refund {waifu.character.name}'
+                                              f' for {waifu.rarity.refund} {CURRENCY}?')
+            if await ctx.confirm(confirmation_msg):
+                await confirmation_msg.clear_reactions()
+                with db:
+                    add_money(db, ctx.author.id, waifu.rarity.refund)
+                    db.execute('DELETE FROM waifu WHERE id=?', [waifu.id])
+                embed: discord.Embed = confirmation_msg.embeds[0]
+                embed.description = f"Successfully refunded {waifu.character.name} for {waifu.rarity.refund} {CURRENCY}"
+                await confirmation_msg.edit(embed=embed)
+            else:
+                await confirmation_msg.delete()
+                await reaction.remove(ctx.author)

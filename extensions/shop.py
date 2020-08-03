@@ -8,7 +8,8 @@ from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY
 from extensions import trade
 from utils import database
-from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, waifu_embed, add_money, Refund, find_waifu
+from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, waifu_embed, add_money, Refund, find_waifu, \
+    waifu_interactions
 
 
 class Shop(commands.Cog):
@@ -45,6 +46,7 @@ class Shop(commands.Cog):
             embed.add_field(name='Duplicate', value=duplicate_msg)
 
         msg = await ctx.send(embed=embed)
+        await waifu_interactions(ctx=ctx, db=db, msg=msg, waifu=waifu)
 
     @commands.group(aliases=['w'], invoke_without_command=True)
     async def waifu(self, ctx: Context):
@@ -68,22 +70,7 @@ class Shop(commands.Cog):
             waifu = find_waifu(db, ctx.author.id, ' '.join(search_terms))
         embed = waifu_embed(waifu)
         msg = await ctx.send(embed=embed)
-
-    @waifu.command(name='refund', aliases=['r'])
-    @trade.forbid
-    async def waifu_refund(self, ctx: Context, *search_terms: str):
-        """Get a refund for a waifu"""
-        with database.connect() as db:
-            waifu = find_waifu(db, ctx.author.id, ' '.join(search_terms))
-            embed = waifu_embed(waifu)
-            confirmation_msg = await ctx.send(
-                f'Do you really want to get a refund for this waifu for {waifu.rarity.refund} {CURRENCY}?', embed=embed)
-            if await ctx.confirm(confirmation_msg):
-                add_money(db, ctx.author.id, waifu.rarity.refund)
-                db.execute('DELETE FROM waifu WHERE id=?', [waifu.id])
-                await ctx.info(f"Successfully refunded {waifu.character.name} for {waifu.rarity.refund} {CURRENCY}")
-            else:
-                await ctx.error('Cancelled refund.')
+        await waifu_interactions(ctx=ctx, db=db, msg=msg, waifu=waifu)
 
     @waifu.command(name='upgrade', aliases=['u', 'up'])
     @trade.forbid
