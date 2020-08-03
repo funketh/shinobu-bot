@@ -57,9 +57,9 @@ class RowData:
         return cls(**tree)
 
     @classmethod
-    def from_mapping(cls, attributes: Mapping[str, Any]) -> RowDataT:
+    def build(cls, **kwargs) -> RowDataT:
         tree: DefaultDict[str, Any] = nested_dict()
-        for name, value in attributes.items():
+        for name, value in kwargs.items():
             subnames = name.split('.')
             subtree = tree
             for subtree_name in subnames[:-1]:
@@ -70,12 +70,12 @@ class RowData:
     @classmethod
     def select_one(cls, db: DB, *args, **kwargs) -> RowDataT:
         if row := db.execute(*args, **kwargs).fetchone():
-            return cls.from_mapping(row)
+            return cls.build(**row)
 
     @classmethod
     def select_many(cls, db: DB, *args, **kwargs) -> Iterator[RowDataT]:
         for row in db.execute(*args, **kwargs):
-            yield cls.from_mapping(row)
+            yield cls.build(**row)
 
 
 @dataclass

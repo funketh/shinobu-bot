@@ -57,7 +57,7 @@ def pick(*args, **kwargs):
 
 def pick_rarity(db: DB) -> Rarity:
     rarities = db.execute('SELECT * FROM rarity').fetchall()
-    return Rarity.from_mapping(pick(rarities, weights=(r['weight'] for r in rarities)))
+    return Rarity.build(**pick(rarities, weights=(r['weight'] for r in rarities)))
 
 
 def pick_character(db: DB, pack_name: str, rarity_val: int) -> Character:
@@ -76,7 +76,7 @@ def pick_character(db: DB, pack_name: str, rarity_val: int) -> Character:
     GROUP BY character.id
     """, [pack_name, rarity_val])]
     weights = [c.pop('__weight__') for c in chars]
-    return Character.from_mapping(pick(chars, weights=weights))
+    return Character.build(**pick(chars, weights=weights))
 
 
 def give_waifu(db: DB, user: User, character: Character, new_rarity: Rarity) -> Tuple[Waifu, DuplicateType]:
