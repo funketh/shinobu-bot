@@ -15,6 +15,7 @@ class Context(commands.Context):
         if description is not None:
             kwargs['description'] = description
         if len(kwargs['description']) > 256:
+            # TODO: checks description but complains about title ???
             raise ValueError('Title must be 256 or fewer in length')
         return await self.send(content, embed=discord.Embed(color=color, **kwargs))
 

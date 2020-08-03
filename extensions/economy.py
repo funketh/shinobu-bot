@@ -85,8 +85,10 @@ class Economy(commands.Cog):
     @commands.command(aliases=['up'])
     async def update(self, ctx: Context):
         """Force a full update of everyone's earnings"""
-        await self.reward_media_consumption.coro(self)
-        await ctx.info("Success!")
+        rewarded_money = await self.reward_media_consumption.coro(self)
+        await ctx.info(title='Success!',
+                       description='\n'.join(f"{ctx.bot.get_user(user.id).mention} earned {amount} {CURRENCY}."
+                                             for user, amount in rewarded_money.items()))
 
 
 def add_years(date_: str, amount: int) -> str:
