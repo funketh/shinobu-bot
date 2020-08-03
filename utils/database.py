@@ -3,6 +3,7 @@ from __future__ import annotations
 import sqlite3
 from collections import defaultdict
 from dataclasses import dataclass
+from functools import partial
 from typing import Optional, Union, TypeVar, Type, Any, DefaultDict, Dict, Generator, Iterator, Mapping
 
 from data.CONSTANTS import DB_PATH
@@ -24,15 +25,15 @@ class _UnavailableMeta(type):
     def __getattribute__(self, name: str):
         raise AttributeError('Invalid Field Access!')
 
-
 class Unavailable(metaclass=_UnavailableMeta): pass
 
 T = TypeVar('T')
 NonObligatory = Union[Type[Unavailable], T]
 
+row_dataclass = partial(dataclass, eq=False)
 
 RowDataT = TypeVar('RowDataT', bound='RowData')
-@dataclass
+@row_dataclass
 class RowData:
     @classmethod
     def _get_subclasses(cls) -> Generator[Type[RowDataT], None, None]:
@@ -78,7 +79,7 @@ class RowData:
             yield cls.build(**row)
 
 
-@dataclass
+@row_dataclass
 class Character(RowData):
     id: int
     name: NonObligatory[str] = Unavailable
@@ -88,7 +89,7 @@ class Character(RowData):
     batch: NonObligatory[Batch] = Unavailable
 
 
-@dataclass
+@row_dataclass
 class Rarity(RowData):
     value: int
     name: NonObligatory[str] = Unavailable
@@ -99,7 +100,7 @@ class Rarity(RowData):
     auto_upgrade: NonObligatory[bool] = Unavailable
 
 
-@dataclass
+@row_dataclass
 class User(RowData):
     id: int
     balance: NonObligatory[int] = Unavailable
@@ -108,7 +109,7 @@ class User(RowData):
     mal_username: NonObligatory[str] = Unavailable
 
 
-@dataclass
+@row_dataclass
 class Waifu(RowData):
     id: int
     character: NonObligatory[Character] = Unavailable
@@ -116,7 +117,7 @@ class Waifu(RowData):
     user: NonObligatory[User] = Unavailable
 
 
-@dataclass
+@row_dataclass
 class Pack(RowData):
     name: str
     cost: NonObligatory[int] = Unavailable
@@ -125,6 +126,6 @@ class Pack(RowData):
     end_date: NonObligatory[Optional[str]] = Unavailable
 
 
-@dataclass
+@row_dataclass
 class Batch(RowData):
     name: NonObligatory[str] = Unavailable
