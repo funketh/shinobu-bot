@@ -9,7 +9,7 @@ from discord.ext import commands, tasks
 
 from api.my_context import Context
 from api.shinobu import Shinobu
-from data.CONSTANTS import CURRENCY
+from data.CONSTANTS import CURRENCY, ANNOUNCEMENT_CHANNEL_ID
 from utils import database
 from utils import mal_rss
 from utils.database import User
@@ -26,15 +26,17 @@ class Economy(commands.Cog):
     async def on_ready(self):
         await self.birthday.coro()
 
-    @tasks.loop(hours=24)
+    @tasks.loop(hours=12)
     async def birthday(self):
-        with database.connect() as db:
-            for user_row in db.execute("SELECT * FROM user WHERE birthday == DATE('now', 'localtime')"):
-                db.execute('UPDATE user SET balance=balance+100, birthday=? WHERE id=?',
-                           [add_years(user_row['birthday'], 1), user_row['id']])
-                user: discord.User = self.bot.get_user(user_row['id'])
-                await user.send(f'🎉🎉🎉 Happy Birthday! 🎉🎉🎉\nAs a present, you get 100 {CURRENCY}!')
-                logger.info(f'gifted 100 to {user.name} as a birthday present!')
+        db = database.connect()
+        for user_row in User.select_many(db, "SELECT * FROM user WHERE birthday == DATE('now', 'localtime')"):
+            db.execute('UPDATE user SET balance=balance+100, birthday=? WHERE id=?',
+                       [add_years(user_row.birthday, 1), user_row.id])
+            user: discord.User = self.bot.get_user(user_row.id)
+            announcement_channel: discord.TextChannel = self.bot.get_channel(ANNOUNCEMENT_CHANNEL_ID)
+            await announcement_channel.send(f'🎉🎉🎉  Happy Birthday {user.mention}!  🎉🎉🎉'
+                                            f'\nAs a present, you get 100 {CURRENCY}!')
+            logger.info(f'gifted 100 to {user.name} as a birthday present!')
 
     @commands.command(aliases=['b'])
     async def balance(self, ctx: Context, user: Optional[discord.User] = None):
