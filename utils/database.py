@@ -30,6 +30,7 @@ class Unavailable(metaclass=_UnavailableMeta): pass
 T = TypeVar('T')
 NonObligatory = Union[Type[Unavailable], T]
 
+# this is to make the dataclasses hashable
 row_dataclass = partial(dataclass, eq=False)
 
 RowDataT = TypeVar('RowDataT', bound='RowData')
