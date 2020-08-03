@@ -38,25 +38,6 @@ class Economy(commands.Cog):
                                             f'\nAs a present, you get 100 {CURRENCY}!')
             logger.info(f'gifted 100 to {user.name} as a birthday present!')
 
-    @commands.command(aliases=['b'])
-    async def balance(self, ctx: Context, user: Optional[discord.User] = None):
-        """Get a user's balance"""
-        user = user or ctx.author
-        with database.connect() as db:
-            user_data = User.select_one(db, 'SELECT * FROM user WHERE id=?', [user.id])
-            income, new_last_withdrawal = income_and_new_last_withdrawal(user_data)
-            if income:
-                if user == ctx.author:
-                    db.execute('UPDATE user SET balance=balance+?, last_withdrawal=? WHERE id=?',
-                               [income, new_last_withdrawal, user.id])
-                    income_msg = f'  (Withdrew {income} {CURRENCY})'
-                    logger.info(f'{ctx.author.name} withdrew {income} from their passive income')
-                else:
-                    income_msg = f'  (Has yet to withdraw {income} {CURRENCY})'
-            else:
-                income_msg = ''
-        await ctx.info(f'{user.mention}\'s balance: {user_data.balance + income} {CURRENCY}{income_msg}')
-
     @tasks.loop(hours=1)
     async def reward_media_consumption(self):
         logger.debug('rewarding media consumption...')
@@ -72,6 +53,8 @@ class Economy(commands.Cog):
                         async for series_id, old_amount, consumed_amount in new_content:
                             logger.info(f'user {user.id} consumed {consumed_amount - old_amount}'
                                         f' bits of {series_id} ({content_type})')
+                            # todo the 'with db:' should be around this and an individual execute which updates
+                            #  the balance (this means removing the executemany below)
                             db.execute('REPLACE INTO consumed_media(user,type,id,amount) VALUES(?,?,?,?)',
                                        (user.id, content_type, series_id, consumed_amount))
                             rewarded_money[user] += await mal_rss.calculate_reward(content_type, series_id,
@@ -94,6 +77,25 @@ class Economy(commands.Cog):
                                                  for user, amount in rewarded_money.items()))
         else:
             await ctx.info('Nothing changed...')
+
+    @commands.command(aliases=['b'])
+    async def balance(self, ctx: Context, user: Optional[discord.User] = None):
+        """Get a user's balance"""
+        user = user or ctx.author
+        with database.connect() as db:
+            user_data = User.select_one(db, 'SELECT * FROM user WHERE id=?', [user.id])
+            income, new_last_withdrawal = income_and_new_last_withdrawal(user_data)
+            if income:
+                if user == ctx.author:
+                    db.execute('UPDATE user SET balance=balance+?, last_withdrawal=? WHERE id=?',
+                               [income, new_last_withdrawal, user.id])
+                    income_msg = f'  (Withdrew {income} {CURRENCY})'
+                    logger.info(f'{ctx.author.name} withdrew {income} from their passive income')
+                else:
+                    income_msg = f'  (Has yet to withdraw {income} {CURRENCY})'
+            else:
+                income_msg = ''
+        await ctx.info(f'{user.mention}\'s balance: {user_data.balance + income} {CURRENCY}{income_msg}')
 
 
 def add_years(date_: str, amount: int) -> str:
