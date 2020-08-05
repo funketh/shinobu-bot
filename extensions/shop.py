@@ -1,16 +1,15 @@
-from typing import Optional
+from typing import Optional, Union
 
 import discord
 from discord.ext import commands
 
-from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
 from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY
 from extensions import trade
 from utils import database
 from utils.database import Pack
-from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, add_money, Refund, find_waifu, \
+from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, Refund, find_waifu, \
     waifu_interactions
 
 
@@ -51,29 +50,33 @@ class Shop(commands.Cog):
         msg = await ctx.send(embed=embed)
         await waifu_interactions(ctx=ctx, db=db, msg=msg, waifu=waifu)
 
-    @commands.group(aliases=['w'], invoke_without_command=True)
-    async def waifu(self, ctx: Context):
-        """Manage your waifus"""
-        await ctx.send_help(ctx.command)
+    class UserOrStringConverter(commands.UserConverter):
+        async def convert(self, ctx: Context, argument: str) -> Union[discord.User, str]:
+            try:
+                return await super().convert(ctx, argument)
+            except commands.BadArgument:
+                return argument
 
-    @waifu.command(name='list', aliases=['l'])
-    async def waifu_list(self, ctx: Context, user: Optional[discord.User] = None):
-        """List all of your waifus"""
-        user = user or ctx.author
-        db = database.connect()
-        waifus = list_waifus(db, user.id)
-        padding = max(len(w.character.name) for w in waifus)
-        waifu_str = '\n'.join(f"{w.character.name:<{padding}} - {w.rarity.name}" for w in waifus)
-        await ctx.send_paginated(waifu_str, prefix='```md\n', suffix='```')
+    @commands.command(aliases=['w'])
+    async def waifu(self, ctx: Context, user: Optional[UserOrStringConverter] = None, *search_terms: str):
+        """List waifus if you give no search terms. Otherwise display the waifu matching your query."""
+        if not isinstance(user, discord.User):
+            if isinstance(user, str):
+                search_terms = (user, *search_terms)
+            user = ctx.author
 
-    @waifu.command(name='info', aliases=['i'])
-    async def waifu_info(self, ctx: Context, *search_terms: str):
-        """Get more information on a waifu"""
         db = database.connect()
-        waifu = find_waifu(db, ctx.author.id, ' '.join(search_terms))
-        embed = waifu.to_embed()
-        msg = await ctx.send(embed=embed)
-        await waifu_interactions(ctx=ctx, db=db, msg=msg, waifu=waifu)
+
+        if search_terms:
+            waifu = find_waifu(db, user.id, ' '.join(search_terms))
+            msg = await ctx.send(embed=waifu.to_embed())
+            await waifu_interactions(ctx=ctx, db=db, msg=msg, waifu=waifu)
+
+        else:
+            waifus = list_waifus(db, user.id)
+            padding = max(len(w.character.name) for w in waifus)
+            waifu_str = '\n'.join(f"{w.character.name:<{padding}} - {w.rarity.name}" for w in waifus)
+            await ctx.send_paginated(waifu_str, prefix='```md\n', suffix='```')
 
 
 def setup(bot: Shinobu):

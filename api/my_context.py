@@ -60,9 +60,12 @@ class Context(commands.Context):
                     break
 
         finally:
-            # Clear the reactions since clicking them no longer does anything
-            for r in reactions:
-                await msg.clear_reaction(r)
+            try:
+                # Clear the reactions since clicking them no longer does anything
+                for r in reactions:
+                    await msg.clear_reaction(r)
+            except discord.errors.NotFound:
+                pass
 
     async def send_paginated(self, content: str, prefix: str = '', suffix: str = '', **kwargs):
         pages = list(paginate(content, prefix=prefix, suffix=suffix))
