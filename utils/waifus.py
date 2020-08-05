@@ -165,9 +165,10 @@ def list_waifus(db: DB, user_id: int) -> List[Waifu]:
 
 
 async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: Waifu):
-    reactions = [TRASH]
+    reactions = []
     if waifu.rarity.upgrade_cost is not None:
         reactions.append(UPGRADE)
+    reactions.append(TRASH)
 
     async for reaction, user in ctx.wait_for_reactions(msg, reactions=reactions):
         waifu.ensure_ownership(db)
@@ -189,7 +190,7 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
 
         elif reaction.emoji == UPGRADE:
             confirmation_msg = await ctx.info(f'Do you really want to upgrade {waifu.character.name}'
-                                              f' for {waifu.rarity.refund} {CURRENCY}?')
+                                              f' for {waifu.rarity.upgrade_cost} {CURRENCY}?')
             if await ctx.confirm(confirmation_msg):
                 waifu.ensure_ownership(db)
                 new_rarity = Rarity.select_one(db, 'SELECT * FROM rarity WHERE value=?', [waifu.rarity.value + 1])
