@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, Union, Iterable, AsyncIterable, Set, Sequence
+from typing import Optional, Union, Iterable, AsyncIterable, Set, Sequence, Tuple
 
 import discord
 from discord import Color
@@ -29,49 +29,54 @@ class Context(commands.Context):
         return await self.send_embed(discord.Color.red(), description, content, **kwargs)
 
     async def confirm(self, *args, **kwargs) -> bool:
-        reaction = await self.wait_for_reaction(*args, reactions=(YES, NO), **kwargs)
-        return reaction and reaction.emoji == YES
+        async for reaction, _ in self.wait_for_reactions(*args, reactions=(YES, NO), **kwargs):
+            return reaction is not None and reaction.emoji == YES
 
     async def confirm_multiuser(self, msg: discord.Message, users: Set[discord.User], **kwargs) -> bool:
-        async for reaction in self.wait_for_reactions(msg, reactions=(YES, NO), users=users, **kwargs):
+        async for reaction, _ in self.wait_for_reactions(msg, reactions=(YES, NO), users=users, **kwargs):
             if reaction.emoji == NO:
                 return False
             if users.issubset(await reaction.users().flatten()):
                 return True
         return False
 
-    async def wait_for_reaction(self, *args, **kwargs) -> Optional[discord.Reaction]:
-        async for reaction in self.wait_for_reactions(*args, **kwargs):
-            return reaction
-
     async def wait_for_reactions(self, msg: discord.Message, reactions: Iterable[str],
-                                 users: Iterable[discord.User] = (), timeout=60) -> AsyncIterable[discord.Reaction]:
+                                 users: Iterable[discord.User] = (), timeout=60
+                                 ) -> AsyncIterable[Tuple[discord.Reaction, discord.User]]:
         users = users or [self.author]
         for r in reactions:
             await msg.add_reaction(r)
 
-        def any_user_answered(r: discord.Reaction, u: discord.User) -> bool:
-            return r.message.id == msg.id and u in users and str(r.emoji) in reactions
+        def any_user_answered(reaction: discord.Reaction, user: discord.User) -> bool:
+            return (reaction.message.id == msg.id
+                    and user in users
+                    and str(reaction.emoji) in reactions)
 
-        while True:
-            try:
-                reaction, _ = await self.bot.wait_for('reaction_add', timeout=timeout, check=any_user_answered)
-            except asyncio.TimeoutError:
-                break
-            yield reaction
+        try:
+            while True:
+                try:
+                    yield await self.bot.wait_for('reaction_add', timeout=timeout, check=any_user_answered)
+                except asyncio.TimeoutError:
+                    break
+
+        finally:
+            # Clear the reactions since clicking them no longer does anything
+            for r in reactions:
+                await msg.clear_reaction(r)
 
     async def send_paginated(self, content: str, prefix: str = '', suffix: str = '', **kwargs):
         pages = list(paginate(content, prefix=prefix, suffix=suffix))
-        await self.send_pager(pages, **kwargs)
+        await self.send_pager(pages)
 
-    async def send_pager(self, pages: Sequence[str], *, timeout=600, **kwargs):
+    async def send_pager(self, pages: Sequence[str], *, users: Iterable[discord.User] = (), timeout=600):
         msg = await self.send(pages[0])
 
         if len(pages) == 1:
             return
 
         i = 0
-        async for reaction in self.wait_for_reactions(msg, reactions=(UP, DOWN, PRINTER), timeout=timeout, **kwargs):
+        async for reaction, user in self.wait_for_reactions(msg, reactions=(UP, DOWN, PRINTER),
+                                                            users=users, timeout=timeout):
             if reaction.emoji == PRINTER:
                 await msg.delete()
                 for p in pages:
@@ -79,12 +84,10 @@ class Context(commands.Context):
                 break
 
             elif reaction.emoji == UP:
-                i = max(i-1, 0)
+                i = max(i - 1, 0)
 
             elif reaction.emoji == DOWN:
-                i = min(i+1, len(pages)-1)
+                i = min(i + 1, len(pages) - 1)
 
             await msg.edit(content=pages[i])
-            async for u in reaction.users():
-                if u != self.bot.user:
-                    await reaction.remove(u)
+            await reaction.remove(user)
