@@ -14,7 +14,7 @@ from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, Refund, find_
 
 
 class Shop(commands.Cog):
-    @commands.command(aliases=['p'], invoke_without_command=True)
+    @commands.command(aliases=['p'])
     @trade.forbid
     async def pack(self, ctx: Context, pack_name: Optional[str] = None):
         """Buy a pack with the given name. List all currently available packs if you don't give a pack name."""
