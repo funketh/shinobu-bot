@@ -14,41 +14,35 @@ from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, Refund, find_
 
 
 class Shop(commands.Cog):
-    @commands.group(aliases=['p'], invoke_without_command=True)
-    async def pack(self, ctx: Context):
-        """Get new waifus"""
-        await ctx.send_help(ctx.command)
-
-    @pack.command(name='list', aliases=['l'])
-    async def pack_list(self, ctx: Context):
-        """List all currently available packs"""
-        db = database.connect()
-        packs = Pack.select_many(db, f'SELECT * FROM pack WHERE {CURRENT_PREDICATE}')
-
-        embed = discord.Embed(colour=discord.Colour.gold())
-        for p in packs:
-            end_date_str = f" (Available until {p.end_date})" if p.end_date else ''
-            embed.add_field(name=f"{p.name} - {p.cost} {CURRENCY}{end_date_str}", value=p.description, inline=False)
-
-        await ctx.send(embed=embed)
-
-    @pack.command(name='buy', aliases=['b'])
+    @commands.command(aliases=['p'], invoke_without_command=True)
     @trade.forbid
-    async def pack_buy(self, ctx: Context, pack_name: str):
-        """Buy and open a pack"""
+    async def pack(self, ctx: Context, pack_name: Optional[str] = None):
+        """Buy a pack with the given name. List all currently available packs if you don't give a pack name."""
         db = database.connect()
-        waifu, duplicate = await buy_pack(db, ctx.author.id, pack_name)
-        embed = waifu.to_embed()
 
-        if duplicate is not None:
-            if isinstance(duplicate, Refund):
-                duplicate_msg = f"Your duplicate waifu got refunded for {duplicate.amount} {CURRENCY}"
-            else:  # isinstance(duplicate, Upgrade)
-                duplicate_msg = f"Your waifu got upgraded to **{duplicate.upgraded_rarity.name}**!"
-            embed.add_field(name='Duplicate', value=duplicate_msg)
+        if pack_name:
+            waifu, duplicate = await buy_pack(db, ctx.author.id, pack_name)
+            embed = waifu.to_embed()
 
-        msg = await ctx.send(embed=embed)
-        await waifu_interactions(ctx=ctx, db=db, msg=msg, waifu=waifu)
+            if duplicate is not None:
+                if isinstance(duplicate, Refund):
+                    duplicate_msg = f"Your duplicate waifu got refunded for {duplicate.amount} {CURRENCY}"
+                else:  # isinstance(duplicate, Upgrade)
+                    duplicate_msg = f"Your waifu got upgraded to **{duplicate.upgraded_rarity.name}**!"
+                embed.add_field(name='Duplicate', value=duplicate_msg)
+
+            msg = await ctx.send(embed=embed)
+            await waifu_interactions(ctx=ctx, db=db, msg=msg, waifu=waifu)
+
+        else:
+            packs = Pack.select_many(db, f'SELECT * FROM pack WHERE {CURRENT_PREDICATE}')
+
+            embed = discord.Embed(colour=discord.Colour.gold())
+            for p in packs:
+                end_date_str = f" (Available until {p.end_date})" if p.end_date else ''
+                embed.add_field(name=f"{p.name} - {p.cost} {CURRENCY}{end_date_str}", value=p.description, inline=False)
+
+            await ctx.send(embed=embed)
 
     class UserOrStringConverter(commands.UserConverter):
         async def convert(self, ctx: Context, argument: str) -> Union[discord.User, str]:
