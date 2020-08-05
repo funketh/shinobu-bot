@@ -135,35 +135,44 @@ def find_waifus(db: DB, user_id: int, query: str) -> Generator[Waifu, None, None
 
 def list_waifus(db: DB, user_id: int) -> List[Waifu]:
     return list(Waifu.select_many(db, """
-    SELECT waifu.id, waifu.user, character.name AS "character.name", character.image_url AS "character.image_url",
-           character.series AS "character.series", character.id AS "character.id",
-           rarity.name AS "rarity.name", rarity.colour AS "rarity.colour", rarity.value AS "rarity.value",
-           rarity.refund AS "rarity.refund", rarity.upgrade_cost AS "rarity.upgrade_cost",
-           rarity.auto_upgrade AS "rarity.auto_upgrade"
+    SELECT waifu.id,
+           -- Character
+               character.id AS "character.id",
+               character.name AS "character.name",
+               character.image_url AS "character.image_url",
+               character.series AS "character.series",
+           -- Rarity
+               rarity.value AS "rarity.value",
+               rarity.name AS "rarity.name",
+               rarity.colour AS "rarity.colour",
+               rarity.refund AS "rarity.refund",
+               rarity.upgrade_cost AS "rarity.upgrade_cost",
+               rarity.auto_upgrade AS "rarity.auto_upgrade",
+           -- User
+               user.id AS "user.id",
+               user.balance AS "user.balance",
+               user.last_withdrawal AS "user.last_withdrawal",
+               user.birthday AS "user.birthday",
+               user.mal_username AS "user.mal_username"
     FROM waifu
     JOIN character ON character.id = waifu.character
     JOIN rarity ON rarity.value = waifu.rarity
-    WHERE waifu.user=?
-    ORDER BY rarity.value DESC, character.name ASC
+    JOIN user ON user.id = waifu.user
+    WHERE user.id = ?
+    ORDER BY rarity.value DESC,
+             character.name ASC
     """, [user_id]))
 
 
-def waifu_embed(waifu: Waifu):
-    embed = discord.Embed(color=waifu.rarity.colour,
-                          title=f'{waifu.character.name} [{waifu.character.series}]',
-                          description=f"**{waifu.rarity.name}**")
-    if waifu.character.image_url:
-        embed.set_image(url=waifu.character.image_url)
-    return embed
-
-
 async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: Waifu):
-    async for reaction in ctx.wait_for_reactions(msg, reactions=(TRASH,)):
+    async for reaction, user in ctx.wait_for_reactions(msg, reactions=[TRASH]):
+        waifu.ensure_ownership(db)
+
         if reaction.emoji == TRASH:
             confirmation_msg = await ctx.info(f'Do you really want to refund {waifu.character.name}'
                                               f' for {waifu.rarity.refund} {CURRENCY}?')
             if await ctx.confirm(confirmation_msg):
-                await confirmation_msg.clear_reactions()
+                waifu.ensure_ownership(db)
                 with db:
                     add_money(db, ctx.author.id, waifu.rarity.refund)
                     db.execute('DELETE FROM waifu WHERE id=?', [waifu.id])
@@ -172,4 +181,4 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
                 await confirmation_msg.edit(embed=embed)
             else:
                 await confirmation_msg.delete()
-                await reaction.remove(ctx.author)
+                await reaction.remove(user)

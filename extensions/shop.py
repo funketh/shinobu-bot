@@ -3,12 +3,14 @@ from typing import Optional
 import discord
 from discord.ext import commands
 
+from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
 from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY
 from extensions import trade
 from utils import database
-from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, waifu_embed, add_money, Refund, find_waifu, \
+from utils.database import Pack
+from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, add_money, Refund, find_waifu, \
     waifu_interactions
 
 
@@ -21,13 +23,14 @@ class Shop(commands.Cog):
     @pack.command(name='list', aliases=['l'])
     async def pack_list(self, ctx: Context):
         """List all currently available packs"""
-        with database.connect() as db:
-            packs = db.execute(f'SELECT * FROM pack WHERE {CURRENT_PREDICATE}').fetchall()
+        db = database.connect()
+        packs = Pack.select_many(db, f'SELECT * FROM pack WHERE {CURRENT_PREDICATE}')
+
         embed = discord.Embed(colour=discord.Colour.gold())
         for p in packs:
-            end_date_str = f" (Available until {p['end_date']})" if p['end_date'] else ''
-            embed.add_field(name=f"{p['name']} - {p['cost']} {CURRENCY}{end_date_str}",
-                            value=p['description'], inline=False)
+            end_date_str = f" (Available until {p.end_date})" if p.end_date else ''
+            embed.add_field(name=f"{p.name} - {p.cost} {CURRENCY}{end_date_str}", value=p.description, inline=False)
+
         await ctx.send(embed=embed)
 
     @pack.command(name='buy', aliases=['b'])
@@ -36,7 +39,7 @@ class Shop(commands.Cog):
         """Buy and open a pack"""
         db = database.connect()
         waifu, duplicate = await buy_pack(db, ctx.author.id, pack_name)
-        embed = waifu_embed(waifu)
+        embed = waifu.to_embed()
 
         if duplicate is not None:
             if isinstance(duplicate, Refund):
@@ -66,9 +69,9 @@ class Shop(commands.Cog):
     @waifu.command(name='info', aliases=['i'])
     async def waifu_info(self, ctx: Context, *search_terms: str):
         """Get more information on a waifu"""
-        with database.connect() as db:
-            waifu = find_waifu(db, ctx.author.id, ' '.join(search_terms))
-        embed = waifu_embed(waifu)
+        db = database.connect()
+        waifu = find_waifu(db, ctx.author.id, ' '.join(search_terms))
+        embed = waifu.to_embed()
         msg = await ctx.send(embed=embed)
         await waifu_interactions(ctx=ctx, db=db, msg=msg, waifu=waifu)
 
@@ -76,22 +79,24 @@ class Shop(commands.Cog):
     @trade.forbid
     async def waifu_upgrade(self, ctx: Context, *search_terms: str):
         """Upgrade a waifu"""
-        with database.connect() as db:
-            waifu = find_waifu(db, ctx.author.id, ' '.join(search_terms))
-            embed = waifu_embed(waifu)
-            if waifu.rarity.upgrade_cost is None:
-                return await ctx.error(f'This rarity is not upgradable:'
+        db = database.connect()
+        waifu = find_waifu(db, ctx.author.id, ' '.join(search_terms))
+
+        if waifu.rarity.upgrade_cost is None:
+            raise ExpectedCommandError(f'This rarity is not upgradable:'
                                        f' **{waifu.rarity.name}** ({waifu.character.name})')
-            confirmation_msg = await ctx.send(
-                f'Do you really want to upgrade this waifu for {waifu.rarity.upgrade_cost} {CURRENCY}?',
-                embed=embed
-            )
-            if await ctx.confirm(confirmation_msg):
+
+        confirmation_msg = await ctx.send(
+            f'Do you really want to upgrade this waifu for {waifu.rarity.upgrade_cost} {CURRENCY}?',
+            embed=waifu.to_embed()
+        )
+        if await ctx.confirm(confirmation_msg):
+            with db:
                 add_money(db, ctx.author.id, -waifu.rarity.upgrade_cost)
                 db.execute('UPDATE waifu SET rarity=? WHERE id=?', [waifu.rarity.value + 1, waifu.id])
-                await ctx.info('Success!')
-            else:
-                await ctx.error('Cancelled upgrade.')
+            await ctx.info('Success!')
+        else:
+            ExpectedCommandError('Cancelled upgrade.')
 
 
 def setup(bot: Shinobu):
