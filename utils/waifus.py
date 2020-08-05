@@ -8,7 +8,7 @@ from fuzzywuzzy import process
 
 from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
-from data.CONSTANTS import TRASH, CURRENCY
+from data.CONSTANTS import TRASH, CURRENCY, UPGRADE
 from utils.database import DB, Waifu, Pack, Character, User, Rarity
 
 CURRENT_PREDICATE = "((pack.start_date <= CURRENT_DATE) " \
@@ -165,7 +165,11 @@ def list_waifus(db: DB, user_id: int) -> List[Waifu]:
 
 
 async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: Waifu):
-    async for reaction, user in ctx.wait_for_reactions(msg, reactions=[TRASH]):
+    reactions = [TRASH]
+    if waifu.rarity.upgrade_cost is not None:
+        reactions.append(UPGRADE)
+
+    async for reaction, user in ctx.wait_for_reactions(msg, reactions=reactions):
         waifu.ensure_ownership(db)
 
         if reaction.emoji == TRASH:
@@ -178,6 +182,22 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
                     db.execute('DELETE FROM waifu WHERE id=?', [waifu.id])
                 embed: discord.Embed = confirmation_msg.embeds[0]
                 embed.description = f"Successfully refunded {waifu.character.name} for {waifu.rarity.refund} {CURRENCY}"
+                await confirmation_msg.edit(embed=embed)
+            else:
+                await confirmation_msg.delete()
+                await reaction.remove(user)
+
+        elif reaction.emoji == UPGRADE:
+            confirmation_msg = await ctx.info(f'Do you really want to upgrade {waifu.character.name}'
+                                              f' for {waifu.rarity.refund} {CURRENCY}?')
+            if await ctx.confirm(confirmation_msg):
+                waifu.ensure_ownership(db)
+                new_rarity = Rarity.select_one(db, 'SELECT * FROM rarity WHERE value=?', [waifu.rarity.value + 1])
+                with db:
+                    add_money(db, ctx.author.id, -waifu.rarity.upgrade_cost)
+                    db.execute('UPDATE waifu SET rarity=? WHERE id=?', [new_rarity.value, waifu.id])
+                embed: discord.Embed = confirmation_msg.embeds[0]
+                embed.description = f"Successfully upgraded {waifu.character.name} to a **{waifu.rarity.name}**"
                 await confirmation_msg.edit(embed=embed)
             else:
                 await confirmation_msg.delete()

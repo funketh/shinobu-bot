@@ -75,29 +75,6 @@ class Shop(commands.Cog):
         msg = await ctx.send(embed=embed)
         await waifu_interactions(ctx=ctx, db=db, msg=msg, waifu=waifu)
 
-    @waifu.command(name='upgrade', aliases=['u', 'up'])
-    @trade.forbid
-    async def waifu_upgrade(self, ctx: Context, *search_terms: str):
-        """Upgrade a waifu"""
-        db = database.connect()
-        waifu = find_waifu(db, ctx.author.id, ' '.join(search_terms))
-
-        if waifu.rarity.upgrade_cost is None:
-            raise ExpectedCommandError(f'This rarity is not upgradable:'
-                                       f' **{waifu.rarity.name}** ({waifu.character.name})')
-
-        confirmation_msg = await ctx.send(
-            f'Do you really want to upgrade this waifu for {waifu.rarity.upgrade_cost} {CURRENCY}?',
-            embed=waifu.to_embed()
-        )
-        if await ctx.confirm(confirmation_msg):
-            with db:
-                add_money(db, ctx.author.id, -waifu.rarity.upgrade_cost)
-                db.execute('UPDATE waifu SET rarity=? WHERE id=?', [waifu.rarity.value + 1, waifu.id])
-            await ctx.info('Success!')
-        else:
-            ExpectedCommandError('Cancelled upgrade.')
-
 
 def setup(bot: Shinobu):
     bot.add_cog(Shop())
