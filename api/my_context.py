@@ -1,5 +1,5 @@
 import asyncio
-from typing import Optional, Union, Iterable, AsyncIterable, Set, Sequence, Tuple
+from typing import Optional, Union, AsyncIterable, Set, Sequence, Tuple, Collection
 
 import discord
 from discord import Color
@@ -32,7 +32,7 @@ class Context(commands.Context):
         async for reaction, _ in self.wait_for_reactions(*args, reactions=(YES, NO), **kwargs):
             return reaction is not None and reaction.emoji == YES
 
-    async def confirm_multiuser(self, msg: discord.Message, users: Set[discord.User], **kwargs) -> bool:
+    async def confirm_multiuser(self, msg: discord.Message, *, users: Set[discord.User], **kwargs) -> bool:
         async for reaction, _ in self.wait_for_reactions(msg, reactions=(YES, NO), users=users, **kwargs):
             if reaction.emoji == NO:
                 return False
@@ -40,8 +40,8 @@ class Context(commands.Context):
                 return True
         return False
 
-    async def wait_for_reactions(self, msg: discord.Message, reactions: Iterable[str],
-                                 users: Iterable[discord.User] = (), timeout=60
+    async def wait_for_reactions(self, msg: discord.Message, reactions: Collection[str], *,
+                                 users: Collection[discord.User] = (), timeout: int = 60
                                  ) -> AsyncIterable[Tuple[discord.Reaction, discord.User]]:
         users = users or [self.author]
         for r in reactions:
@@ -69,9 +69,9 @@ class Context(commands.Context):
 
     async def send_paginated(self, content: str, prefix: str = '', suffix: str = '', **kwargs):
         pages = list(paginate(content, prefix=prefix, suffix=suffix))
-        await self.send_pager(pages)
+        await self.send_pager(pages, **kwargs)
 
-    async def send_pager(self, pages: Sequence[str], *, users: Iterable[discord.User] = (), timeout=600):
+    async def send_pager(self, pages: Sequence[str], *, users: Collection[discord.User] = (), timeout: int = 600):
         msg = await self.send(pages[0])
 
         if len(pages) == 1:
