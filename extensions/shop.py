@@ -54,17 +54,18 @@ class Shop(commands.Cog):
     @commands.command(aliases=['w'])
     async def waifu(self, ctx: Context, user: str = '', *search_terms: str):
         """List waifus if you give no search terms. Otherwise display the waifu matching your query."""
+        query = ' '.join(search_terms)
         maybe_user = await self.maybe_to_user(ctx, user)
         if isinstance(maybe_user, discord.User):
             user = maybe_user
         else:
             user = ctx.author
-            search_terms = (user, *search_terms)
+            query = maybe_user + query
 
         db = database.connect()
 
-        if search_terms:
-            waifu = find_waifu(db, user.id, ' '.join(search_terms))
+        if query:
+            waifu = find_waifu(db, user.id, query)
             msg = await ctx.send(embed=waifu.to_embed())
             await waifu_interactions(ctx=ctx, db=db, msg=msg, waifu=waifu)
 
