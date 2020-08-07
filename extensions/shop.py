@@ -72,7 +72,8 @@ class Shop(commands.Cog):
         if query:
             waifu = find_waifu(db, user.id, query)
             msg = await ctx.send(embed=waifu.to_embed())
-            await waifu_interactions(ctx=ctx, db=db, msg=msg, waifu=waifu)
+            if user == ctx.author:
+                await waifu_interactions(ctx=ctx, db=db, msg=msg, waifu=waifu)
 
         else:
             waifus = list_waifus(db, user.id)

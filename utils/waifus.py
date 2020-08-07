@@ -165,6 +165,9 @@ def list_waifus(db: DB, user_id: int) -> List[Waifu]:
 
 
 async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: Waifu):
+    # TODO: allow interactions that ctx.author can't react to
+    assert waifu.user.id == ctx.author.id
+
     reactions = []
     if waifu.rarity.upgrade_cost is not None:
         reactions.append(UPGRADE)
@@ -179,7 +182,7 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
             if await ctx.confirm(confirmation_msg):
                 waifu.ensure_ownership(db)
                 with db:
-                    add_money(db, ctx.author.id, waifu.rarity.refund)
+                    add_money(db, user.id, waifu.rarity.refund)
                     db.execute('DELETE FROM waifu WHERE id=?', [waifu.id])
                 embed: discord.Embed = confirmation_msg.embeds[0]
                 embed.description = f"Successfully refunded {waifu.character.name} for {waifu.rarity.refund} {CURRENCY}"
