@@ -46,7 +46,7 @@ class Economy(commands.Cog):
 
         users = User.select_many(db, "SELECT * FROM user WHERE mal_username > ''")
         rewarded_money: Counter[User, int] = Counter()
-        with db:
+        with db:  # TODO:  don't lock so long...
             async with aiohttp.ClientSession() as session:
                 for user in users:
                     for content_type in ('anime', 'manga'):
