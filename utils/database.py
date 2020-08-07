@@ -1,10 +1,12 @@
 from __future__ import annotations
 
+import dataclasses
 import sqlite3
 from collections import defaultdict
 from dataclasses import dataclass
 from functools import partial
-from typing import Optional, Union, TypeVar, Type, Any, DefaultDict, Dict, Generator, Iterator
+from typing import Optional, Union, TypeVar, Type, Any, DefaultDict, Dict, Generator, Iterator, Iterable, Collection, \
+    List
 
 import discord
 
@@ -28,7 +30,9 @@ class _UnavailableMeta(type):
     def __getattribute__(self, name: str):
         raise AttributeError('Invalid Field Access!')
 
+
 class Unavailable(metaclass=_UnavailableMeta): pass
+
 
 _T = TypeVar('_T')
 NonObligatory = Union[Type[Unavailable], _T]
@@ -36,6 +40,8 @@ NonObligatory = Union[Type[Unavailable], _T]
 row_dataclass = partial(dataclass, unsafe_hash=True)
 
 _RowDataT = TypeVar('_RowDataT', bound='RowData')
+
+
 @row_dataclass
 class RowData:
     @classmethod
@@ -80,6 +86,59 @@ class RowData:
     def select_many(cls, db: DB, *args, **kwargs) -> Iterator[_RowDataT]:
         for row in db.execute(*args, **kwargs):
             yield cls.build(**row)
+
+    @classmethod
+    def _field_to_join(cls, field: dataclasses.Field) -> str:
+        # extract the type T out of 'NonObligatory[T]'
+        field_type = field.type.__args__[1]
+        return f'JOIN {field_type.__name__.lower()} ON {cls.__name__.lower()}.'
+
+    @classmethod
+    def _field_to_selection(cls, field: dataclasses.Field) -> str:
+        return f'{cls.__name__.lower()}.{field.name} AS "{cls.__name__}.{field.name}"'
+
+    @classmethod
+    def orm_select_wrap(cls, db: DB, ):
+        query = 'SELECT '
+
+    @dataclass
+    class SelectStrings:
+        selects: Collection[str]
+        joins: Collection[str]
+
+    @classmethod
+    def orm_select(cls, recursive=True, barebones=False, **kwargs) -> SelectStrings:
+        assert not (recursive and barebones)
+        fields = dataclasses.fields(cls)
+        simple_field_types: List[Type] = []  # fields that aren't foreign keys
+        foreign_field_types: List[Type] = []  # fields that are foreign keys to some other table
+        for f in fields:
+            if issubclass(f.default, Unavailable):
+
+                foreign_field_types.append(f.type.__args__[1])
+            else:
+                simple_field_types.append(f.type)
+
+        selects = []
+        selects.extend(map(cls._field_to_selection, simple_field_types))
+
+        joins = []
+        if not barebones:
+            for t in foreign_field_types:
+                joins.append(f"")
+
+        if recursive:
+            for f in foreign_field_types:
+                # TODO: change recursive to True and check dep cycles
+                new_selects, new_joins = f.type.orm_select(recursive=False, **kwargs)
+                selects.extend(new_selects)
+                joins.extend(new_joins)
+        elif not barebones:
+            for f in foreign_field_types:
+                new_selects, new_joins = f.type.orm_select(recursive=False, barebones=True, **kwargs)
+                selects.extend(new_selects)
+                joins.extend(new_joins)
+
 
 
 @row_dataclass

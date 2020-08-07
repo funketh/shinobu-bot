@@ -44,20 +44,22 @@ class Shop(commands.Cog):
 
             await ctx.send(embed=embed)
 
-    class UserOrStringConverter(commands.UserConverter):
-        async def convert(self, ctx: Context, argument: str) -> Union[discord.User, str]:
-            try:
-                return await super().convert(ctx, argument)
-            except commands.BadArgument:
-                return argument
+    @staticmethod
+    async def maybe_to_user(ctx: commands.Context, argument: str) -> Union[discord.User, str]:
+        try:
+            return await commands.UserConverter().convert(ctx, argument)
+        except commands.BadArgument:
+            return argument
 
     @commands.command(aliases=['w'])
-    async def waifu(self, ctx: Context, user: Optional[UserOrStringConverter] = None, *search_terms: str):
+    async def waifu(self, ctx: Context, user: str = '', *search_terms: str):
         """List waifus if you give no search terms. Otherwise display the waifu matching your query."""
-        if not isinstance(user, discord.User):
-            if isinstance(user, str):
-                search_terms = (user, *search_terms)
+        maybe_user = await self.maybe_to_user(ctx, user)
+        if isinstance(maybe_user, discord.User):
+            user = maybe_user
+        else:
             user = ctx.author
+            search_terms = (user, *search_terms)
 
         db = database.connect()
 

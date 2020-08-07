@@ -31,10 +31,10 @@ DuplicateType = Union[Refund, Upgrade, None]
 async def buy_pack(db: DB, user_id: int, pack_name: str) -> Tuple[Waifu, DuplicateType]:
     with db:
         user = User.select_one(db, 'SELECT * FROM user WHERE id=?', [user_id])
-        try:
-            pack = Pack.select_one(db, f'SELECT * FROM pack WHERE {CURRENT_PREDICATE} AND name LIKE ?', [pack_name])
-        except TypeError:
+        pack = Pack.select_one(db, f'SELECT * FROM pack WHERE {CURRENT_PREDICATE} AND name LIKE ?', [pack_name])
+        if pack is None:
             raise ExpectedCommandError(f"There's no pack named {pack_name}!")
+
         add_money(db, user.id, -pack.cost)
         character, rarity = pick_from_pack(db, pack.name)
         return give_waifu(db, user, character, rarity)
