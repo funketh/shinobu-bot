@@ -48,7 +48,9 @@ class Shop(commands.Cog):
     async def maybe_to_user(ctx: commands.Context, argument: str) -> Union[discord.User, str]:
         try:
             return await commands.UserConverter().convert(ctx, argument)
-        except commands.BadArgument:
+        except (commands.BadArgument, IndexError):
+            # BadArgument -> string is not a user
+            # IndexError -> string is empty
             return argument
 
     @commands.command(aliases=['w'])
