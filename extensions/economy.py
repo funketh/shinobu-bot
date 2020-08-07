@@ -30,13 +30,14 @@ class Economy(commands.Cog):
     async def birthday(self):
         db = database.connect()
         for user_row in User.select_many(db, "SELECT * FROM user WHERE birthday == DATE('now', 'localtime')"):
-            db.execute('UPDATE user SET balance=balance+100, birthday=? WHERE id=?',
-                       [add_years(user_row.birthday, 1), user_row.id])
-            user: discord.User = self.bot.get_user(user_row.id)
-            announcement_channel: discord.TextChannel = self.bot.get_channel(ANNOUNCEMENT_CHANNEL_ID)
-            await announcement_channel.send(f'🎉🎉🎉  Happy Birthday {user.mention}!  🎉🎉🎉'
-                                            f'\nAs a present, you get 100 {CURRENCY}!')
-            logger.info(f'gifted 100 to {user.name} as a birthday present!')
+            with db:
+                db.execute('UPDATE user SET balance=balance+100, birthday=? WHERE id=?',
+                           [add_years(user_row.birthday, 1), user_row.id])
+                user: discord.User = self.bot.get_user(user_row.id)
+                announcement_channel: discord.TextChannel = self.bot.get_channel(ANNOUNCEMENT_CHANNEL_ID)
+                await announcement_channel.send(f'🎉🎉🎉  Happy Birthday {user.mention}!  🎉🎉🎉'
+                                                f'\nAs a present, you get 100 {CURRENCY}!')
+                logger.info(f'gifted 100 to {user.name} as a birthday present!')
 
     @tasks.loop(hours=1)
     async def reward_media_consumption(self):
