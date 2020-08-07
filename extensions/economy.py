@@ -44,26 +44,23 @@ class Economy(commands.Cog):
         logger.debug('rewarding media consumption...')
         db = database.connect()
 
-        users = User.select_many(db, "SELECT * FROM user WHERE mal_username > ''")
         rewarded_money: Counter[User, int] = Counter()
-        with db:  # TODO:  don't lock so long...
-            async with aiohttp.ClientSession() as session:
-                for user in users:
-                    for content_type in ('anime', 'manga'):
-                        new_content = mal_rss.new_mal_content(db, session, content_type, user.id, user.mal_username)
-                        async for series_id, old_amount, consumed_amount in new_content:
+        async with aiohttp.ClientSession() as session:
+            for user in User.select_many(db, "SELECT * FROM user WHERE mal_username > ''"):
+                for content_type in ('anime', 'manga'):
+                    new_content = await mal_rss.new_mal_content(db=db, session=session, content_type=content_type,
+                                                                user_id=user.id, mal_username=user.mal_username)
+                    with db:
+                        for series_id, old_amount, consumed_amount in new_content:
                             logger.info(f'user {user.id} consumed {consumed_amount - old_amount}'
                                         f' bits of {series_id} ({content_type})')
-                            # todo the 'with db:' should be around this and an individual execute which updates
-                            #  the balance (this means removing the executemany below)
                             db.execute('REPLACE INTO consumed_media(user,type,id,amount) VALUES(?,?,?,?)',
                                        (user.id, content_type, series_id, consumed_amount))
                             rewarded_money[user] += await mal_rss.calculate_reward(content_type, series_id,
                                                                                    amount=consumed_amount - old_amount)
-                            # todo move calculate_reward into Anime/Manga class(look for any if statements checking for
-                            #  the content_type and move them there too)
-            db.executemany('UPDATE user SET balance=balance+? WHERE id=?',
-                           [(amount, user.id) for user, amount in rewarded_money.items()])
+                        db.execute('UPDATE user SET balance=balance+? WHERE id=?', (rewarded_money[user], user.id))
+                        # todo move calculate_reward into Anime/Manga class(look for any if statements checking for
+                        #  the content_type and move them there too)
 
         return rewarded_money
 
