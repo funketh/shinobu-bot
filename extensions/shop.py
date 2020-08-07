@@ -24,15 +24,18 @@ class Shop(commands.Cog):
             waifu, duplicate = await buy_pack(db, ctx.author.id, pack_name)
             embed = waifu.to_embed()
 
+            allow_interactions = True
             if duplicate is not None:
                 if isinstance(duplicate, Refund):
                     duplicate_msg = f"Your duplicate waifu got refunded for {duplicate.amount} {CURRENCY}"
+                    allow_interactions = False
                 else:  # isinstance(duplicate, Upgrade)
                     duplicate_msg = f"Your waifu got upgraded to **{duplicate.upgraded_rarity.name}**!"
                 embed.add_field(name='Duplicate', value=duplicate_msg)
 
             msg = await ctx.send(embed=embed)
-            await waifu_interactions(ctx=ctx, db=db, msg=msg, waifu=waifu)
+            if allow_interactions:
+                await waifu_interactions(ctx=ctx, db=db, msg=msg, waifu=waifu)
 
         else:
             packs = Pack.select_many(db, f'SELECT * FROM pack WHERE {CURRENT_PREDICATE}')

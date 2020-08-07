@@ -41,7 +41,7 @@ class Context(commands.Context):
         return False
 
     async def wait_for_reactions(self, msg: discord.Message, reactions: Collection[str], *,
-                                 users: Collection[discord.User] = (), timeout: int = 60
+                                 users: Collection[discord.User] = (), timeout: int = 300
                                  ) -> AsyncIterable[Tuple[discord.Reaction, discord.User]]:
         users = users or [self.author]
         for r in reactions:

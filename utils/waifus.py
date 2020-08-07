@@ -198,7 +198,7 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
                     add_money(db, ctx.author.id, -waifu.rarity.upgrade_cost)
                     db.execute('UPDATE waifu SET rarity=? WHERE id=?', [new_rarity.value, waifu.id])
                 embed: discord.Embed = confirmation_msg.embeds[0]
-                embed.description = f"Successfully upgraded {waifu.character.name} to a **{waifu.rarity.name}**"
+                embed.description = f"Successfully upgraded {waifu.character.name} to a **{new_rarity.name}**"
                 await confirmation_msg.edit(embed=embed)
             else:
                 await confirmation_msg.delete()
