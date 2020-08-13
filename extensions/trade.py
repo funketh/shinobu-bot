@@ -18,7 +18,7 @@ from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY
 from utils import database
 from utils.database import DB, Waifu
-from utils.waifus import find_waifu, add_money
+from utils.waifus import add_money
 
 change_dataclass = partial(dataclass, frozen=True)
 
@@ -123,17 +123,6 @@ class Trade(commands.Cog):
             change_list.clear()
             await ctx.info(f"Cancelled {ctx.author.mention}'s transaction.")
 
-    @trade.command(name='waifu', aliases=['w'])
-    async def trade_waifu(self, ctx: Context, partner: discord.User, *search_terms):
-        """Give one of your waifus to the specified user"""
-        db = database.connect()
-        waifu = find_waifu(db, ctx.author.id, ' '.join(search_terms))
-        transfer = WaifuTransfer(from_id=ctx.author.id, to_id=partner.id, waifu=waifu)
-        change_list = _CHANGES[ctx.author]
-        async with change_list.lock:
-            change_list.append(transfer)
-        await ctx.info(f"Queued action: {transfer}")
-
     @trade.command(name='money', aliases=['m'])
     async def trade_money(self, ctx: Context, partner: discord.User, amount: int):
         """Give money to someone"""
@@ -155,7 +144,7 @@ class Trade(commands.Cog):
             changes_str = '\n'.join(str(c) for c in all_changes)
             mention_str = ', '.join(s.mention for s in signers)
             msg = await ctx.send(f"{mention_str}: Do you accept the following changes?\n{changes_str}")
-            if await ctx.confirm_multiuser(msg, users=signers):
+            if await ctx.confirm(msg, users=signers):
                 with database.connect() as db:
                     for c in all_changes:
                         await c.execute(db)

@@ -1,14 +1,17 @@
+import asyncio
 import random
 import sqlite3
 from dataclasses import dataclass
 from typing import Tuple, Generator, List, Union
 
 import discord
+from discord.ext import commands
 from fuzzywuzzy import process
 
 from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
-from data.CONSTANTS import TRASH, CURRENCY, UPGRADE
+from data.CONSTANTS import TRASH, CURRENCY, UPGRADE, SEND
+from extensions.trade import WaifuTransfer, _CHANGES
 from utils.database import DB, Waifu, Pack, Character, User, Rarity
 
 CURRENT_PREDICATE = "((pack.start_date <= CURRENT_DATE) " \
@@ -168,41 +171,62 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
     # TODO: allow interactions that ctx.author can't react to
     assert waifu.user.id == ctx.author.id
 
-    reactions = []
+    async def trash(user: discord.User, **_):
+        confirmation_msg = await ctx.info(f'Do you really want to refund {waifu.character.name}'
+                                          f' for {waifu.rarity.refund} {CURRENCY}?')
+        if await ctx.confirm(confirmation_msg):
+            waifu.ensure_ownership(db)
+            with db:
+                add_money(db, user.id, waifu.rarity.refund)
+                db.execute('DELETE FROM waifu WHERE id=?', [waifu.id])
+            embed: discord.Embed = confirmation_msg.embeds[0]
+            embed.description = f"Successfully refunded {waifu.character.name} for {waifu.rarity.refund} {CURRENCY}"
+            await confirmation_msg.edit(embed=embed)
+        else:
+            await confirmation_msg.delete()
+
+    async def upgrade(user: discord.User, **_):
+        confirmation_msg = await ctx.info(f'Do you really want to upgrade {waifu.character.name}'
+                                          f' for {waifu.rarity.upgrade_cost} {CURRENCY}?')
+        if await ctx.confirm(confirmation_msg):
+            waifu.ensure_ownership(db)
+            new_rarity = Rarity.select_one(db, 'SELECT * FROM rarity WHERE value=?', [waifu.rarity.value + 1])
+            with db:
+                add_money(db, user.id, -waifu.rarity.upgrade_cost)
+                db.execute('UPDATE waifu SET rarity=? WHERE id=?', [new_rarity.value, waifu.id])
+            embed: discord.Embed = confirmation_msg.embeds[0]
+            embed.description = f"Successfully upgraded {waifu.character.name} to a **{new_rarity.name}**"
+            await confirmation_msg.edit(embed=embed)
+        else:
+            await confirmation_msg.delete()
+
+    async def send(user: discord.User, **_):
+        ask_for_user_msg = await ctx.info(f'Who do you want to give {waifu.character.name} to?')
+
+        try:
+            answer = await ctx.bot.wait_for('message', timeout=120,
+                                            check=lambda m: m.channel == ctx.channel and m.user == user)
+        except asyncio.TimeoutError:
+            await ask_for_user_msg.delete()
+            return
+
+        try:
+            trade_to = await commands.UserConverter().convert(ctx, answer.content)
+        except commands.BadArgument:
+            await ask_for_user_msg.delete()
+            raise ExpectedCommandError(f"Invalid user! You have to mention them like so: {ctx.bot.user.mention}")
+
+        transfer = WaifuTransfer(from_id=user.id, to_id=trade_to.id, waifu=waifu)
+        change_list = _CHANGES[ctx.author]
+        async with change_list.lock:
+            change_list.append(transfer)
+        await ctx.info(f"Queued action: {transfer}")
+
+    reactions = {}
     if waifu.rarity.upgrade_cost is not None:
-        reactions.append(UPGRADE)
-    reactions.append(TRASH)
+        reactions[UPGRADE] = upgrade
+    reactions[TRASH] = trash
+    reactions[SEND] = send
 
-    async for reaction, user in ctx.wait_for_reactions(msg, reactions=reactions):
-        waifu.ensure_ownership(db)
+    await ctx.reaction_buttons(msg, reactions)
 
-        if reaction.emoji == TRASH:
-            confirmation_msg = await ctx.info(f'Do you really want to refund {waifu.character.name}'
-                                              f' for {waifu.rarity.refund} {CURRENCY}?')
-            if await ctx.confirm(confirmation_msg):
-                waifu.ensure_ownership(db)
-                with db:
-                    add_money(db, user.id, waifu.rarity.refund)
-                    db.execute('DELETE FROM waifu WHERE id=?', [waifu.id])
-                embed: discord.Embed = confirmation_msg.embeds[0]
-                embed.description = f"Successfully refunded {waifu.character.name} for {waifu.rarity.refund} {CURRENCY}"
-                await confirmation_msg.edit(embed=embed)
-            else:
-                await confirmation_msg.delete()
-                await reaction.remove(user)
-
-        elif reaction.emoji == UPGRADE:
-            confirmation_msg = await ctx.info(f'Do you really want to upgrade {waifu.character.name}'
-                                              f' for {waifu.rarity.upgrade_cost} {CURRENCY}?')
-            if await ctx.confirm(confirmation_msg):
-                waifu.ensure_ownership(db)
-                new_rarity = Rarity.select_one(db, 'SELECT * FROM rarity WHERE value=?', [waifu.rarity.value + 1])
-                with db:
-                    add_money(db, ctx.author.id, -waifu.rarity.upgrade_cost)
-                    db.execute('UPDATE waifu SET rarity=? WHERE id=?', [new_rarity.value, waifu.id])
-                embed: discord.Embed = confirmation_msg.embeds[0]
-                embed.description = f"Successfully upgraded {waifu.character.name} to a **{new_rarity.name}**"
-                await confirmation_msg.edit(embed=embed)
-            else:
-                await confirmation_msg.delete()
-                await reaction.remove(user)
