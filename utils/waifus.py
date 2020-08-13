@@ -197,7 +197,7 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
 
         try:
             answer = await ctx.bot.wait_for('message', timeout=120,
-                                            check=lambda m: m.channel == ctx.channel and m.user == user)
+                                            check=lambda m: m.channel == ctx.channel and m.author == user)
         except asyncio.TimeoutError:
             await ask_for_user_msg.delete()
             return
