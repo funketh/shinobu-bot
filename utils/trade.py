@@ -80,7 +80,7 @@ class LockedList(UserList):
         self.lock = asyncio.Lock()
 
 
-CHANGES: DefaultDict[discord.User, LockedList[Change]] = defaultdict(LockedList)
+CHANGES: DefaultDict[discord.User, LockedList] = defaultdict(LockedList)
 
 
 def forbid(func: Callable[..., Coroutine]):
