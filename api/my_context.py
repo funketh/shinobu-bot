@@ -67,12 +67,14 @@ class Context(commands.Context):
                     except ExpectedCommandError as e:
                         # Handle the exception but continue waiting for more reactions
                         await self.bot.on_command_error(self, e)
+                        continue
+
+                    finally:
                         # Remove the user's reaction if possible in case they want to click it again
                         try:
                             await reaction.remove(user)
                         except (discord.Forbidden, discord.NotFound):
                             pass
-                        continue
 
                     if ret is not None:
                         return ret
