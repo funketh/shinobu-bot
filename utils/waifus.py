@@ -11,7 +11,7 @@ from fuzzywuzzy import process
 from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
 from data.CONSTANTS import TRASH, CURRENCY, UPGRADE, SEND
-from extensions.trade import WaifuTransfer, _CHANGES
+from utils.trade import WaifuTransfer, CHANGES
 from utils.database import DB, Waifu, Pack, Character, User, Rarity
 
 CURRENT_PREDICATE = "((pack.start_date <= CURRENT_DATE) " \
@@ -217,7 +217,7 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
             raise ExpectedCommandError(f"Invalid user! You have to mention them like so: {ctx.bot.user.mention}")
 
         transfer = WaifuTransfer(from_id=user.id, to_id=trade_to.id, waifu=waifu)
-        change_list = _CHANGES[ctx.author]
+        change_list = CHANGES[ctx.author]
         async with change_list.lock:
             change_list.append(transfer)
         await ctx.info(f"Queued action: {transfer}")

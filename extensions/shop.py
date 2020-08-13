@@ -3,6 +3,7 @@ from typing import Optional, Union
 import discord
 from discord.ext import commands
 
+import utils.trade
 from api.my_context import Context
 from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY
@@ -15,7 +16,7 @@ from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, Refund, find_
 
 class Shop(commands.Cog):
     @commands.command(aliases=['p'])
-    @trade.forbid
+    @utils.trade.forbid
     async def pack(self, ctx: Context, pack_name: Optional[str] = None):
         """Buy a pack with the given name. List all currently available packs if you don't give a pack name."""
         db = database.connect()
