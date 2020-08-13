@@ -30,7 +30,7 @@ class Context(commands.Context):
         return await self.send_embed(discord.Color.red(), description, content, **kwargs)
 
     async def confirm(self, msg: discord.Message, users: Set[discord.User] = None, **kwargs) -> bool:
-        users = users or {}
+        users = users or set()
 
         async def yes(reaction: discord.Reaction, **_):
             if users.issubset(await reaction.users().flatten()):
