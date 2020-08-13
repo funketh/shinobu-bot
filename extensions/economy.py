@@ -39,7 +39,7 @@ class Economy(commands.Cog):
                                             f'\nAs a present, you get 100 {CURRENCY}!')
             logger.info(f'gifted 100 to {user.name} as a birthday present!')
 
-    @tasks.loop(hours=1)
+    @tasks.loop(hours=6)
     async def reward_media_consumption(self):
         logger.debug('rewarding media consumption...')
         db = database.connect()

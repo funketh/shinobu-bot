@@ -60,6 +60,7 @@ class MoneyTransfer(Change):
     amount: int
 
     def __post_init__(self):
+        super().__post_init__()
         if self.amount <= 0:
             raise ExpectedCommandError(f"You can only transfer positive amounts of {CURRENCY}!")
 
