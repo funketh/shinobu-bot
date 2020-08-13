@@ -112,4 +112,4 @@ class Context(commands.Context):
             await update_page(min(i + 1, len(pages) - 1))
 
         await self.reaction_buttons(msg, users=users, timeout=timeout,
-                                    reactions={PRINTER: printer, UP: up, DOWN: down})
+                                    reactions={UP: up, DOWN: down, PRINTER: printer})
