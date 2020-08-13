@@ -1,6 +1,5 @@
 import asyncio
 import random
-import sqlite3
 from dataclasses import dataclass
 from typing import Tuple, Generator, List, Union
 
@@ -11,8 +10,8 @@ from fuzzywuzzy import process
 from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
 from data.CONSTANTS import TRASH, CURRENCY, UPGRADE, SEND
-from utils.trade import WaifuTransfer, CHANGES
 from utils.database import DB, Waifu, Pack, Character, User, Rarity
+from utils.trade import WaifuTransfer, CHANGES, add_money
 
 CURRENT_PREDICATE = "((pack.start_date <= CURRENT_DATE) " \
                     " AND (pack.end_date IS NULL OR pack.end_date >= CURRENT_DATE))"
@@ -41,13 +40,6 @@ async def buy_pack(db: DB, user_id: int, pack_name: str) -> Tuple[Waifu, Duplica
         add_money(db, user.id, -pack.cost)
         character, rarity = pick_from_pack(db, pack.name)
         return give_waifu(db, user, character, rarity)
-
-
-def add_money(db: DB, user_id: int, amount: int):
-    try:
-        db.execute('UPDATE user SET balance=balance+? WHERE id=?', [amount, user_id])
-    except sqlite3.IntegrityError:
-        raise ExpectedCommandError(f'<@{user_id}> does not have enough money!')
 
 
 def pick_from_pack(db: DB, pack_name: str) -> Tuple[Character, Rarity]:
@@ -229,4 +221,3 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
     reactions[SEND] = send
 
     await ctx.reaction_buttons(msg, reactions)
-

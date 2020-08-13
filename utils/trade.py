@@ -12,9 +12,15 @@ from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
 from data.CONSTANTS import CURRENCY
 from utils.database import DB, Waifu
-from utils.waifus import add_money
 
 change_dataclass = partial(dataclass, frozen=True)
+
+
+def add_money(db: DB, user_id: int, amount: int):
+    try:
+        db.execute('UPDATE user SET balance=balance+? WHERE id=?', [amount, user_id])
+    except sqlite3.IntegrityError:
+        raise ExpectedCommandError(f'<@{user_id}> does not have enough money!')
 
 
 @change_dataclass
