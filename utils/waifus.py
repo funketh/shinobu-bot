@@ -13,8 +13,8 @@ from data.CONSTANTS import TRASH, CURRENCY, UPGRADE, SEND
 from utils.database import DB, Waifu, Pack, Character, User, Rarity
 from utils.trade import WaifuTransfer, CHANGES, add_money
 
-CURRENT_PREDICATE = "((pack.start_date <= CURRENT_DATE) " \
-                    " AND (pack.end_date IS NULL OR pack.end_date >= CURRENT_DATE))"
+CURRENT_PREDICATE = "((pack.start_date <= DATE('NOW', 'LOCALTIME')) " \
+                    " AND (pack.end_date IS NULL OR pack.end_date >= DATE('NOW', 'LOCALTIME')))"
 
 
 @dataclass(frozen=True)
