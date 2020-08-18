@@ -164,6 +164,7 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
     assert waifu.user.id == ctx.author.id
 
     async def trash(user: discord.User, **_):
+        waifu.ensure_ownership(db)
         confirmation_msg = await ctx.info(f'Do you really want to refund {waifu.character.name}'
                                           f' for {waifu.rarity.refund} {CURRENCY}?')
         if await ctx.confirm(confirmation_msg):
@@ -178,6 +179,7 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
             await confirmation_msg.delete()
 
     async def upgrade(user: discord.User, **_):
+        waifu.ensure_ownership(db)
         confirmation_msg = await ctx.info(f'Do you really want to upgrade {waifu.character.name}'
                                           f' for {waifu.rarity.upgrade_cost} {CURRENCY}?')
         if await ctx.confirm(confirmation_msg):
@@ -193,6 +195,7 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
             await confirmation_msg.delete()
 
     async def send(user: discord.User, **_):
+        waifu.ensure_ownership(db)
         ask_for_user_msg = await ctx.info(f'Who do you want to give {waifu.character.name} to?')
 
         try:
@@ -211,6 +214,7 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
         transfer = WaifuTransfer(from_id=user.id, to_id=trade_to.id, waifu=waifu)
         change_list = CHANGES[ctx.author]
         async with change_list.lock:
+            waifu.ensure_ownership(db)
             change_list.append(transfer)
         await ctx.info(f"Queued action: {transfer}")
 
