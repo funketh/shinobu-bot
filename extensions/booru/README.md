@@ -1,0 +1,1 @@
+This extension (`booru`) was adapted from https://github.com/Jintaku/Jintaku-Cogs-V3/ and is licensed under the AGPL (see the `LICENSE` file).

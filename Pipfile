@@ -10,6 +10,7 @@ aiohttp = "*"
 discord-py = {extras = ["voice"],version = "*"}
 fuzzywuzzy = {extras = ["speedup"],version = "*"}
 feedparser = "*"
+aiocache = "*"
 
 [requires]
 python_version = "3.8"
