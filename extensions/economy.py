@@ -1,7 +1,6 @@
 import logging
-from collections import Counter
 from datetime import datetime, timedelta
-from typing import Optional, Tuple
+from typing import Optional, Tuple, AsyncIterator
 
 import aiohttp
 import discord
@@ -40,29 +39,28 @@ class Economy(commands.Cog):
             logger.info(f'gifted 100 to {user.name} as a birthday present!')
 
     @tasks.loop(hours=6)
-    async def reward_media_consumption(self):
+    async def reward_media_consumption(self) -> AsyncIterator[Tuple[User, int]]:
         logger.debug('rewarding media consumption...')
         db = database.connect()
 
-        rewarded_money: Counter[User, int] = Counter()
         async with aiohttp.ClientSession() as session:
             for user in User.select_many(db, "SELECT * FROM user WHERE mal_username > ''"):
                 for content_type in ('anime', 'manga'):
-                    new_content = await mal_rss.new_mal_content(db=db, session=session, content_type=content_type,
-                                                                user_id=user.id, mal_username=user.mal_username)
+                    content = await mal_rss.new_mal_content(db=db, session=session, content_type=content_type,
+                                                            user_id=user.id, mal_username=user.mal_username)
                     with db:
-                        for series_id, old_amount, consumed_amount in new_content:
-                            logger.info(f'user {user.id} consumed {consumed_amount - old_amount}'
-                                        f' bits of {series_id} ({content_type})')
+                        for series_id, old_amount, consumed_amount in content:
+                            reward = await mal_rss.calculate_reward(content_type, series_id,
+                                                                    amount=consumed_amount - old_amount)
+                            # todo move calculate_reward into Anime/Manga class(look for any if statements checking for
+                            #  the content_type and move them there too)
+                            db.execute('UPDATE user SET balance=balance+? WHERE id=?',
+                                       (reward, user.id))
                             db.execute('REPLACE INTO consumed_media(user,type,id,amount) VALUES(?,?,?,?)',
                                        (user.id, content_type, series_id, consumed_amount))
-                            rewarded_money[user] += await mal_rss.calculate_reward(content_type, series_id,
-                                                                                   amount=consumed_amount - old_amount)
-                        db.execute('UPDATE user SET balance=balance+? WHERE id=?', (rewarded_money[user], user.id))
-                        # todo move calculate_reward into Anime/Manga class(look for any if statements checking for
-                        #  the content_type and move them there too)
-
-        return rewarded_money
+                            logger.info(f'user {user.id} consumed {consumed_amount - old_amount}'
+                                        f' bits of {series_id} ({content_type})')
+                            yield user, reward
 
     @commands.cooldown(1, 60)
     @commands.command(aliases=['up'])
@@ -72,7 +70,7 @@ class Economy(commands.Cog):
         if rewarded_money:
             await ctx.info(title='Success!',
                            description='\n'.join(f"{ctx.bot.get_user(user.id).mention} earned {amount} {CURRENCY}"
-                                                 for user, amount in rewarded_money.items()))
+                                                 for user, amount in rewarded_money))
         else:
             await ctx.info('Nothing changed...')
 
