@@ -19,13 +19,13 @@ logger = logging.getLogger(__name__)
 class Economy(commands.Cog):
     def __init__(self, bot: Shinobu):
         self.bot = bot
-        self.birthday.start()
-        self.reward_media_consumption.start()
-
-    async def on_ready(self):
-        await self.birthday.coro()
+        self.birthday_task.start()
+        self.reward_media_consumption_task.start()
 
     @tasks.loop(hours=12)
+    async def birthday_task(self):
+        await self.birthday()
+
     async def birthday(self):
         db = database.connect()
         for user_row in User.select_many(db, "SELECT * FROM user WHERE birthday == DATE('now', 'localtime')"):
@@ -39,7 +39,12 @@ class Economy(commands.Cog):
             logger.info(f'gifted 100 to {user.name} as a birthday present!')
 
     @tasks.loop(hours=6)
-    async def reward_media_consumption(self) -> AsyncIterator[Tuple[User, int]]:
+    async def reward_media_consumption_task(self):
+        async for _ in self.reward_media_consumption():
+            pass
+
+    @staticmethod
+    async def reward_media_consumption() -> AsyncIterator[Tuple[User, int]]:
         logger.debug('rewarding media consumption...')
         db = database.connect()
 
@@ -66,11 +71,11 @@ class Economy(commands.Cog):
     @commands.command(aliases=['up'])
     async def update(self, ctx: Context):
         """Force a full update of everyone's earnings"""
-        rewarded_money = await self.reward_media_consumption.coro(self)
+        rewarded_money = self.reward_media_consumption()
         if rewarded_money:
             await ctx.info(title='Success!',
                            description='\n'.join(f"{ctx.bot.get_user(user.id).mention} earned {amount} {CURRENCY}"
-                                                 for user, amount in rewarded_money))
+                                                 async for user, amount in rewarded_money))
         else:
             await ctx.info('Nothing changed...')
 
