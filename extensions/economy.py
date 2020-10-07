@@ -71,11 +71,8 @@ class Economy(commands.Cog):
     @commands.command(aliases=['up'])
     async def update(self, ctx: Context):
         """Force a full update of everyone's earnings"""
-        rewarded_money = self.reward_media_consumption()
-        if rewarded_money:
-            lines = []
-            async for user, amount in rewarded_money:
-                lines.append(f"{ctx.bot.get_user(user.id).mention} earned {amount} {CURRENCY}")
+        if lines := [f"{ctx.bot.get_user(user.id).mention} earned {amount} {CURRENCY}"
+                     async for user, amount in self.reward_media_consumption()]:
             await ctx.info(title='Success!', description='\n'.join(lines))
         else:
             await ctx.info('Nothing changed...')
