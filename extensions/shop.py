@@ -1,27 +1,24 @@
-from typing import Optional, Union
-
 import discord
 from discord.ext import commands
+from typing import Union
 
 import utils.trade
 from api.my_context import Context
 from api.shinobu import Shinobu
 from data.CONSTANTS import CURRENCY
-from extensions import trade
 from utils import database
 from utils.database import Pack
-from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, Refund, find_waifu, \
-    waifu_interactions
+from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, Refund, find_waifu, waifu_interactions
 
 
 class Shop(commands.Cog):
     @commands.command(aliases=['p'])
     @utils.trade.forbid
-    async def pack(self, ctx: Context, pack_name: Optional[str] = None):
+    async def pack(self, ctx: Context, *pack_name: str):
         """Buy a pack with the given name. List all currently available packs if you don't give a pack name."""
         db = database.connect()
 
-        if pack_name:
+        if pack_name := ' '.join(pack_name):
             waifu, duplicate = await buy_pack(db, ctx.author.id, pack_name)
             embed = waifu.to_embed()
 
