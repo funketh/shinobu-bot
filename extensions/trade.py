@@ -10,7 +10,7 @@ from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
 from api.shinobu import Shinobu
 from utils import database
-from utils.trade import Change, MoneyTransfer, CHANGES, require
+from utils.trade import Change, CHANGES, require
 
 
 class Trade(commands.Cog):
@@ -27,15 +27,6 @@ class Trade(commands.Cog):
         async with change_list.lock:
             change_list.clear()
             await ctx.info(f"Cancelled {ctx.author.mention}'s transaction.")
-
-    @trade.command(name='money', aliases=['m'])
-    async def trade_money(self, ctx: Context, partner: discord.User, amount: int):
-        """Give money to someone"""
-        transfer = MoneyTransfer(from_id=ctx.author.id, to_id=partner.id, amount=amount)
-        change_list = CHANGES[ctx.author]
-        async with change_list.lock:
-            change_list.append(transfer)
-        await ctx.info(f"Queued action: {transfer}")
 
     @trade.command(name='sign', aliases=['s'])
     @require

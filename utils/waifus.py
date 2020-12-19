@@ -11,7 +11,7 @@ from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
 from data.CONSTANTS import TRASH, CURRENCY, UPGRADE, SEND
 from utils.database import DB, Waifu, Pack, Character, User, Rarity
-from utils.trade import WaifuTransfer, CHANGES, add_money
+from utils.trade import WaifuTransfer, CHANGES, add_money, MoneyTransfer
 
 CURRENT_PREDICATE = "((pack.start_date <= DATE('NOW', 'LOCALTIME')) " \
                     " AND (pack.end_date IS NULL OR pack.end_date >= DATE('NOW', 'LOCALTIME')))"
@@ -225,3 +225,49 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
     reactions[SEND] = send
 
     await ctx.reaction_buttons(msg, reactions)
+
+
+async def user_interactions(ctx: Context, msg: discord.Message, target_user: discord.User):
+    # TODO: allow interactions that ctx.author can't react to
+    assert target_user.id == ctx.author.id
+
+    async def send(user: discord.User, **_):
+        if user == target_user:
+            ask_for_user_msg = await ctx.info(f'Who do you want to give money to?')
+
+            try:
+                answer = await ctx.bot.wait_for('message', timeout=120,
+                                                check=lambda m: m.channel == ctx.channel and m.author == user)
+            except asyncio.TimeoutError:
+                await ask_for_user_msg.delete()
+                return
+
+            try:
+                trade_to = await commands.UserConverter().convert(ctx, answer.content)
+            except commands.BadArgument:
+                await ask_for_user_msg.delete()
+                raise ExpectedCommandError(f"Invalid user! You have to mention them like so: {ctx.bot.user.mention}")
+        else:
+            trade_to = target_user
+
+        ask_for_balance_msg = await ctx.info(f'How much money do you want to give {trade_to.mention}?')
+        try:
+            answer = await ctx.bot.wait_for('message', timeout=120,
+                                            check=lambda m: m.channel == ctx.channel and m.author == user)
+        except asyncio.TimeoutError:
+            await ask_for_balance_msg.delete()
+            return
+
+        try:
+            amount = int(answer.content)
+        except commands.BadArgument:
+            await ask_for_balance_msg.delete()
+            raise ExpectedCommandError(f"Invalid amount!")
+
+        transfer = MoneyTransfer(from_id=user.id, to_id=trade_to.id, amount=amount)
+        change_list = CHANGES[ctx.author]
+        async with change_list.lock:
+            change_list.append(transfer)
+        await ctx.info(f"Queued action: {transfer}")
+
+    await ctx.reaction_buttons(msg, {SEND: send})

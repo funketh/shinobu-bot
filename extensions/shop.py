@@ -11,7 +11,8 @@ from data.CONSTANTS import CURRENCY
 from extensions.economy import income_and_new_last_withdrawal
 from utils import database
 from utils.database import Pack, User, DB
-from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, Refund, find_waifu, waifu_interactions
+from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, Refund, find_waifu, waifu_interactions, \
+    user_interactions
 
 logger = logging.getLogger(__name__)
 
@@ -84,23 +85,6 @@ class Shop(commands.Cog):
             waifu_str = '\n'.join(f"{w.character.name:<{padding}} - {w.rarity.name}" for w in waifus)
             await ctx.send_paginated(waifu_str, prefix='```md\n', suffix='```')
 
-    def balance(self, user: User, is_author: bool):
-        """Get a user's balance"""
-        with database.connect() as db:
-            user_data = User.select_one(db, 'SELECT * FROM user WHERE id=?', [user.id])
-            income, new_last_withdrawal = income_and_new_last_withdrawal(user_data)
-            if income:
-                if is_author:
-                    db.execute('UPDATE user SET balance=balance+?, last_withdrawal=? WHERE id=?',
-                               [income, new_last_withdrawal, user.id])
-                    income_msg = f'  (Withdrew {income} {CURRENCY})'
-                    logger.info(f'{user.name} withdrew {income} from their passive income')
-                else:
-                    income_msg = f'  (Has yet to withdraw {income} {CURRENCY})'
-            else:
-                income_msg = ''
-        return f'{user_data.balance + income} {CURRENCY}{income_msg}'
-
     @staticmethod
     def income_msg(db: DB, discord_user: discord.User, db_user: User, is_author: bool):
         income, new_last_withdrawal = income_and_new_last_withdrawal(db_user)
@@ -110,8 +94,9 @@ class Shop(commands.Cog):
         elif not is_author:
             income_msg = f'  (Has yet to withdraw {income} {CURRENCY})'
         else:
-            db.execute('UPDATE user SET balance=balance+?, last_withdrawal=? WHERE id=?',
-                       [income, new_last_withdrawal, discord_user.id])
+            with db:
+                db.execute('UPDATE user SET balance=balance+?, last_withdrawal=? WHERE id=?',
+                           [income, new_last_withdrawal, discord_user.id])
             logger.info(f'{discord_user.name} withdrew {income} from their passive income')
             income_msg = f'  (Withdrew {income} {CURRENCY})'
 
@@ -131,7 +116,9 @@ class Shop(commands.Cog):
                               )
         embed.set_thumbnail(url=str(user.avatar_url))
         embed.add_field(name='Balance', value=self.income_msg(db, user, db_user, user == ctx.author))
-        await ctx.send(embed=embed)
+        db.close()
+        msg = await ctx.send(embed=embed)
+        await user_interactions(ctx=ctx, msg=msg, target_user=user)
 
 
 def setup(bot: Shinobu):
