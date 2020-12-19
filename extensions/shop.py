@@ -104,6 +104,7 @@ class Shop(commands.Cog):
 
     @commands.command(aliases=['u'])
     async def user(self, ctx: Context, user: str = ''):
+        """Show information about a user."""
         maybe_user = await self.maybe_to_user(ctx, user)
         user = maybe_user if isinstance(maybe_user, discord.User) else ctx.author
 
