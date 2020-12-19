@@ -276,11 +276,11 @@ async def user_interactions(ctx: Context, msg: discord.Message, target_user: dis
 async def queue_interactions(ctx: Context, msg: discord.Message):
     async def confirm(**_):
         # XXX: this is hacky because I'm injecting an incorrect context and self but it doesn't really matter
-        await Trade.trade_sign.coro(object(), ctx)
+        await Trade.trade_sign.callback(object(), ctx)
 
     async def cancel(**_):
         # XXX: this is hacky because I'm injecting an incorrect context and self but it doesn't really matter
-        await Trade.trade_cancel.coro(object(), ctx)
+        await Trade.trade_cancel.callback(object(), ctx)
 
     await ctx.reaction_buttons(msg, {CONFIRM: confirm, CANCEL: cancel})
 
