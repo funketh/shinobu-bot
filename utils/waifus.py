@@ -228,8 +228,6 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
 
 
 async def user_interactions(ctx: Context, msg: discord.Message, target_user: discord.User):
-    # TODO: allow interactions that ctx.author can't react to
-    assert target_user.id == ctx.author.id
 
     async def send(user: discord.User, **_):
         if user == target_user:
