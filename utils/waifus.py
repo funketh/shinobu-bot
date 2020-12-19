@@ -217,7 +217,8 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
         async with change_list.lock:
             waifu.ensure_ownership(db)
             change_list.append(transfer)
-        await ctx.info(f"Queued action: {transfer}")
+        queued_msg = await ctx.info(f"Queued action: {transfer}")
+        await queue_interactions(ctx, queued_msg)
 
     reactions = {}
     if waifu.rarity.upgrade_cost is not None:
