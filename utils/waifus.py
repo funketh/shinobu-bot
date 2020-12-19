@@ -9,7 +9,8 @@ from fuzzywuzzy import process
 
 from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
-from data.CONSTANTS import TRASH, CURRENCY, UPGRADE, SEND
+from data.CONSTANTS import TRASH, CURRENCY, UPGRADE, SEND, YES, CONFIRM, CANCEL
+from extensions.trade import Trade
 from utils.database import DB, Waifu, Pack, Character, User, Rarity
 from utils.trade import WaifuTransfer, CHANGES, add_money, MoneyTransfer
 
@@ -228,7 +229,6 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
 
 
 async def user_interactions(ctx: Context, msg: discord.Message, target_user: discord.User):
-
     async def send(user: discord.User, **_):
         if user == target_user:
             ask_for_user_msg = await ctx.info(f'Who do you want to give money to?')
@@ -258,7 +258,7 @@ async def user_interactions(ctx: Context, msg: discord.Message, target_user: dis
 
         try:
             amount = int(answer.content)
-        except commands.BadArgument:
+        except ValueError:
             await ask_for_balance_msg.delete()
             raise ExpectedCommandError(f"Invalid amount!")
 
@@ -266,6 +266,20 @@ async def user_interactions(ctx: Context, msg: discord.Message, target_user: dis
         change_list = CHANGES[ctx.author]
         async with change_list.lock:
             change_list.append(transfer)
-        await ctx.info(f"Queued action: {transfer}")
+        queued_msg = await ctx.info(f"Queued action: {transfer}")
+        await queue_interactions(ctx, queued_msg)
 
     await ctx.reaction_buttons(msg, {SEND: send})
+
+
+async def queue_interactions(ctx: Context, msg: discord.Message):
+    async def confirm(**_):
+        # XXX: this is hacky because I'm injecting an incorrect context and self but it doesn't really matter
+        await Trade.trade_sign.coro(object(), ctx)
+
+    async def cancel(**_):
+        # XXX: this is hacky because I'm injecting an incorrect context and self but it doesn't really matter
+        await Trade.trade_cancel.coro(object(), ctx)
+
+    await ctx.reaction_buttons(msg, {CONFIRM: confirm, CANCEL: cancel})
+
