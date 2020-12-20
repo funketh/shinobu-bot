@@ -112,6 +112,9 @@ def find_waifu(*args, **kwargs) -> Waifu:
 
 def find_waifus(db: DB, user_id: int, query: str) -> Generator[Waifu, None, None]:
     waifus = list_waifus(db, user_id)
+    if not waifus:
+        raise StopIteration
+
     matches = process.extract(query, (w.character.name for w in waifus), limit=None, scorer=fuzz.token_set_ratio)
     for m in matches:
         for i, w in enumerate(waifus):
