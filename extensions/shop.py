@@ -11,8 +11,8 @@ from data.CONSTANTS import CURRENCY
 from extensions.economy import income_and_new_last_withdrawal
 from utils import database
 from utils.database import Pack, User, DB
-from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, Refund, find_waifu, waifu_interactions, \
-    user_interactions
+from utils.waifus import buy_pack, CURRENT_PREDICATE, list_waifus, Refund, find_waifu
+from utils.interactions import waifu_interactions, user_interactions
 
 logger = logging.getLogger(__name__)
 
