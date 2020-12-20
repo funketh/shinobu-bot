@@ -15,9 +15,10 @@ class Context(commands.Context):
                          content: Optional[str] = None, **kwargs):
         if description is not None:
             kwargs['description'] = description
-        if len(kwargs['description']) > 256:
-            # TODO: checks description but complains about title ???
+        if len(kwargs['title']) > 256:
             raise ValueError('Title must be 256 or fewer in length')
+        if len(kwargs['description']) > 2048:
+            raise ValueError('Description must be 2048 or fewer in length')
         return await self.send(content, embed=discord.Embed(color=color, **kwargs))
 
     async def info(self, description: Optional[str] = None, content: Optional[str] = None, **kwargs):
