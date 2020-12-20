@@ -115,3 +115,29 @@ class Context(commands.Context):
 
         await self.reaction_buttons(msg, users=users, timeout=timeout,
                                     reactions={UP: up, DOWN: down, PRINTER: printer})
+
+    async def quick_question(self, question: str, user: Optional[discord.User] = None, delete_answer: bool = True
+                             ) -> Optional[str]:
+        user = user or self.author
+        question_msg = await self.info(question)
+
+        def check(m: discord.Message):
+            return m.channel == self.channel and m.author == user
+
+        try:
+            answer = await self.bot.wait_for('message', timeout=120, check=check)
+        except asyncio.TimeoutError:
+            return None
+        else:
+            content = answer.content
+            if delete_answer:
+                try:
+                    await answer.delete()
+                except (discord.Forbidden, discord.NotFound):
+                    pass
+            return content
+        finally:
+            try:
+                await question_msg.delete()
+            except (discord.Forbidden, discord.NotFound):
+                pass

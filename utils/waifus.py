@@ -197,19 +197,14 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
 
     async def send(user: discord.User, **_):
         waifu.ensure_ownership(db)
-        ask_for_user_msg = await ctx.info(f'Who do you want to give {waifu.character.name} to?')
 
-        try:
-            answer = await ctx.bot.wait_for('message', timeout=120,
-                                            check=lambda m: m.channel == ctx.channel and m.author == user)
-        except asyncio.TimeoutError:
-            await ask_for_user_msg.delete()
+        answer = await ctx.quick_question(f'Who do you want to give {waifu.character.name} to?', user)
+        if answer is None:
             return
 
         try:
-            trade_to = await commands.UserConverter().convert(ctx, answer.content)
+            trade_to = await commands.UserConverter().convert(ctx, answer)
         except commands.BadArgument:
-            await ask_for_user_msg.delete()
             raise ExpectedCommandError(f"Invalid user! You have to mention them like so: {ctx.bot.user.mention}")
 
         transfer = WaifuTransfer(from_id=user.id, to_id=trade_to.id, waifu=waifu)
@@ -232,35 +227,24 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
 async def user_interactions(ctx: Context, msg: discord.Message, target_user: discord.User):
     async def send(user: discord.User, **_):
         if user == target_user:
-            ask_for_user_msg = await ctx.info(f'Who do you want to give money to?')
-
-            try:
-                answer = await ctx.bot.wait_for('message', timeout=120,
-                                                check=lambda m: m.channel == ctx.channel and m.author == user)
-            except asyncio.TimeoutError:
-                await ask_for_user_msg.delete()
+            answer = await ctx.quick_question('Who do you want to give money to?', user)
+            if answer is None:
                 return
 
             try:
-                trade_to = await commands.UserConverter().convert(ctx, answer.content)
+                trade_to = await commands.UserConverter().convert(ctx, answer)
             except commands.BadArgument:
-                await ask_for_user_msg.delete()
                 raise ExpectedCommandError(f"Invalid user! You have to mention them like so: {ctx.bot.user.mention}")
         else:
             trade_to = target_user
 
-        ask_for_balance_msg = await ctx.info(f'How much money do you want to give {trade_to.mention}?')
-        try:
-            answer = await ctx.bot.wait_for('message', timeout=120,
-                                            check=lambda m: m.channel == ctx.channel and m.author == user)
-        except asyncio.TimeoutError:
-            await ask_for_balance_msg.delete()
+        answer = await ctx.quick_question(f'How much money do you want to give {trade_to.mention}?', user)
+        if answer is None:
             return
 
         try:
-            amount = int(answer.content)
+            amount = int(answer)
         except ValueError:
-            await ask_for_balance_msg.delete()
             raise ExpectedCommandError(f"Invalid amount!")
 
         transfer = MoneyTransfer(from_id=user.id, to_id=trade_to.id, amount=amount)
@@ -283,4 +267,3 @@ async def queue_interactions(ctx: Context, msg: discord.Message):
         await Trade.trade_cancel.callback(object(), ctx)
 
     await ctx.reaction_buttons(msg, {CONFIRM: confirm, CANCEL: cancel})
-
