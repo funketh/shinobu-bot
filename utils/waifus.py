@@ -2,7 +2,7 @@ import random
 from dataclasses import dataclass
 from typing import Tuple, Generator, List, Union
 
-from fuzzywuzzy import process
+from fuzzywuzzy import process, fuzz
 
 from api.expected_errors import ExpectedCommandError
 from utils.database import DB, Waifu, Pack, Character, User, Rarity
@@ -112,7 +112,7 @@ def find_waifu(*args, **kwargs) -> Waifu:
 
 def find_waifus(db: DB, user_id: int, query: str) -> Generator[Waifu, None, None]:
     waifus = list_waifus(db, user_id)
-    matches = process.extract(query, (w.character.name for w in waifus), limit=None)
+    matches = process.extract(query, (w.character.name for w in waifus), limit=None, scorer=fuzz.token_set_ratio)
     for m in matches:
         for i, w in enumerate(waifus):
             if w.character.name == m[0]:
