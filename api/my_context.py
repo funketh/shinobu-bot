@@ -13,11 +13,10 @@ from utils.formatting import paginate
 class Context(commands.Context):
     async def send_embed(self, color: Union[Color, int], description: Optional[str] = None,
                          content: Optional[str] = None, **kwargs):
-        if description is not None:
-            kwargs['description'] = description
-        if len(kwargs['title']) > 256:
+        kwargs.setdefault('description', description)
+        if len(kwargs.get('title', ())) > 256:
             raise ValueError('Title must be 256 or fewer in length')
-        if len(kwargs['description']) > 2048:
+        if len(kwargs.get('description', ())) > 2048:
             raise ValueError('Description must be 2048 or fewer in length')
         return await self.send(content, embed=discord.Embed(color=color, **kwargs))
 
