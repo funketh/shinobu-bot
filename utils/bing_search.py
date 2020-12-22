@@ -1,8 +1,9 @@
 import asyncio
 
 import re
-from typing import AnyStr, AsyncIterable, Optional
-from typing.re import Match
+from collections import AsyncIterable
+from re import Match
+from typing import AnyStr, Optional
 from urllib.parse import quote_plus
 
 import aiohttp

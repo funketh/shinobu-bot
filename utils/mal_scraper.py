@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import re
 from abc import abstractmethod
+from collections import Iterable
 from datetime import timedelta
-from typing import Optional, Union, Tuple, Protocol, ClassVar, TypeVar, Iterable, Pattern
+from re import Pattern
+from typing import Optional, Union, Protocol, ClassVar, TypeVar
 
 import aiohttp
 import discord
@@ -20,7 +22,7 @@ class BaseScraper:
             async with session.get(self.url) as response:
                 return await response.text()
 
-    async def _safe_single_match(self, pattern, **kwargs) -> Union[str, Tuple[str, ...], None]:
+    async def _safe_single_match(self, pattern, **kwargs) -> Union[str, tuple[str, ...], None]:
         matches = re.findall(pattern, await self.page, **kwargs)
         length = len(matches)
         if length == 1:

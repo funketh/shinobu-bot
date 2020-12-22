@@ -1,5 +1,5 @@
 import re
-from typing import Tuple, Iterator, Type
+from collections import Iterator
 
 import aiohttp
 import feedparser
@@ -8,8 +8,8 @@ from utils.database import DB
 from utils.mal_scraper import Content
 
 
-async def new_mal_content(db: DB, session: aiohttp.ClientSession, content_type: Type[Content], user_id: int,
-                          mal_username: str) -> Iterator[Tuple[int, int, int]]:
+async def new_mal_content(db: DB, session: aiohttp.ClientSession, content_type: type[Content], user_id: int,
+                          mal_username: str) -> Iterator[tuple[int, int, int]]:
     entries = []
     for rss_type in content_type.rss_types:
         async with session.get(f"https://myanimelist.net/rss.php?type={rss_type}&u={mal_username}") as resp:

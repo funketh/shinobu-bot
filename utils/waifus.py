@@ -1,6 +1,7 @@
 import random
+from collections import Generator
 from dataclasses import dataclass
-from typing import Tuple, Generator, List, Union
+from typing import Union
 
 from fuzzywuzzy import process, fuzz
 
@@ -25,7 +26,7 @@ class Upgrade:
 DuplicateType = Union[Refund, Upgrade, None]
 
 
-async def buy_pack(db: DB, user_id: int, pack_name: str) -> Tuple[Waifu, DuplicateType]:
+async def buy_pack(db: DB, user_id: int, pack_name: str) -> tuple[Waifu, DuplicateType]:
     with db:
         user = User.select_one(db, 'SELECT * FROM user WHERE id=?', [user_id])
         pack = Pack.select_one(db, f'SELECT * FROM pack WHERE {CURRENT_PREDICATE} AND name LIKE ?', [pack_name])
@@ -37,7 +38,7 @@ async def buy_pack(db: DB, user_id: int, pack_name: str) -> Tuple[Waifu, Duplica
         return give_waifu(db, user, character, rarity)
 
 
-def pick_from_pack(db: DB, pack_name: str) -> Tuple[Character, Rarity]:
+def pick_from_pack(db: DB, pack_name: str) -> tuple[Character, Rarity]:
     rarity = pick_rarity(db)
     character = pick_character(db, pack_name, rarity.value)
     return character, rarity
@@ -71,7 +72,7 @@ def pick_character(db: DB, pack_name: str, rarity_val: int) -> Character:
     return Character.build(**pick(chars, weights=weights))
 
 
-def give_waifu(db: DB, user: User, character: Character, new_rarity: Rarity) -> Tuple[Waifu, DuplicateType]:
+def give_waifu(db: DB, user: User, character: Character, new_rarity: Rarity) -> tuple[Waifu, DuplicateType]:
     waifu = Waifu.select_one(db, """
     SELECT waifu.id, waifu.rarity AS 'rarity.value',
            waifu.character AS 'character.id', waifu.user AS 'user.id'
@@ -126,7 +127,7 @@ def find_waifus(db: DB, user_id: int, query: str) -> Generator[Waifu, None, None
         yield waifus.pop(found_i)
 
 
-def list_waifus(db: DB, user_id: int) -> List[Waifu]:
+def list_waifus(db: DB, user_id: int) -> list[Waifu]:
     return list(Waifu.select_many(db, """
     SELECT waifu.id,
            -- Character

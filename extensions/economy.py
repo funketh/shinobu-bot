@@ -1,6 +1,6 @@
 import logging
+from collections import AsyncIterator
 from datetime import datetime, timedelta
-from typing import Tuple, AsyncIterator
 
 import aiohttp
 import discord
@@ -45,7 +45,7 @@ class Economy(commands.Cog):
             pass
 
     @staticmethod
-    async def reward_media_consumption() -> AsyncIterator[Tuple[User, int]]:
+    async def reward_media_consumption() -> AsyncIterator[tuple[User, int]]:
         logger.debug('rewarding media consumption...')
         db = database.connect()
 
@@ -81,7 +81,7 @@ def add_years(date_: str, amount: int) -> str:
     return str(int(date_[:4]) + amount) + date_[4:]
 
 
-def income_and_new_last_withdrawal(user: User) -> Tuple[int, datetime]:
+def income_and_new_last_withdrawal(user: User) -> tuple[int, datetime]:
     income_in_seconds = 3600 * 5
     last_withdrawal = datetime.fromisoformat(user.last_withdrawal)
     full_delta = datetime.today() - last_withdrawal

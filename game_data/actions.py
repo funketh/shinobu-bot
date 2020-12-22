@@ -1,4 +1,4 @@
-from typing import Sequence
+from collections import Sequence
 from dataclasses import dataclass, field
 
 from game_data.categories import *
@@ -8,7 +8,7 @@ from game_data.effects import *
 @dataclass
 class Action:
     name: str
-    type: Type
+    type: type
     kind: Kind
     description: str = ""
     effects: Sequence[Effect] = field(default_factory=list)

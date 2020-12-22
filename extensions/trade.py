@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from contextlib import AsyncExitStack
-from typing import List, Set
 
 import discord
 from discord.ext import commands
@@ -32,11 +31,11 @@ class Trade(commands.Cog):
     @require
     async def trade_sign(self, ctx: Context, *signers: discord.User):
         """Execute the transactions of every specified signer including yourself"""
-        signers: Set[discord.User] = {ctx.author, *signers}
+        signers: set[discord.User] = {ctx.author, *signers}
         async with AsyncExitStack() as stack:
             for s in signers:
                 await stack.enter_async_context(CHANGES[s].lock)
-            all_changes: List[Change] = [c for s in signers for c in CHANGES[s]]
+            all_changes: list[Change] = [c for s in signers for c in CHANGES[s]]
             changes_str = '\n'.join(str(c) for c in all_changes)
             mention_str = ', '.join(s.mention for s in signers)
             msg = await ctx.send(f"{mention_str}: Do you accept the following changes?\n{changes_str}")

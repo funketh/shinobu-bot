@@ -1,10 +1,10 @@
 import asyncio
 import sqlite3
 from abc import abstractmethod
-from collections import UserList, defaultdict
+from collections import UserList, defaultdict, Callable, Coroutine
 from dataclasses import dataclass
 from functools import partial, wraps
-from typing import Protocol, DefaultDict, Callable, Coroutine
+from typing import Protocol, Final
 
 import discord
 
@@ -80,7 +80,7 @@ class LockedList(UserList):
         self.lock = asyncio.Lock()
 
 
-CHANGES: DefaultDict[discord.User, LockedList] = defaultdict(LockedList)
+CHANGES: Final[defaultdict[discord.User, LockedList]] = defaultdict(LockedList)
 
 
 def forbid(func: Callable[..., Coroutine]):

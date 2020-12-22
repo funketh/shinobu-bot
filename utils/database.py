@@ -1,10 +1,10 @@
 from __future__ import annotations
 
 import sqlite3
-from collections import defaultdict
+from collections import defaultdict, Iterator, Generator
 from dataclasses import dataclass
 from functools import partial
-from typing import Optional, Union, TypeVar, Type, Any, DefaultDict, Dict, Generator, Iterator
+from typing import Optional, Union, TypeVar, Any, Final
 
 import discord
 
@@ -20,7 +20,7 @@ def connect(db_path=DB_PATH) -> DB:
     return db
 
 
-def nested_dict() -> DefaultDict:
+def nested_dict() -> defaultdict:
     return defaultdict(nested_dict)
 
 
@@ -29,7 +29,7 @@ class _Unavailable:
         raise AttributeError('Invalid Field Access!')
 
 
-UNAVAILABLE = _Unavailable()
+UNAVAILABLE: Final = _Unavailable()
 
 _T = TypeVar('_T')
 NonObligatory = Union[_Unavailable, _T]
@@ -41,19 +41,19 @@ row_dataclass = partial(dataclass, unsafe_hash=True)
 @row_dataclass
 class RowData:
     @classmethod
-    def _get_subclasses(cls) -> Generator[Type[_RowDataT], None, None]:
+    def _get_subclasses(cls) -> Generator[type[_RowDataT], None, None]:
         for subclass in cls.__subclasses__():
             yield from subclass._get_subclasses()
             yield subclass
 
     @classmethod
-    def _find_subclass(cls, name: str) -> Optional[Type[_RowDataT]]:
+    def _find_subclass(cls, name: str) -> Optional[type[_RowDataT]]:
         for subclass in cls._get_subclasses():
             if subclass.__name__ == name:
                 return subclass
 
     @classmethod
-    def _from_tree(cls, tree: Dict[str, Any]) -> _RowDataT:
+    def _from_tree(cls, tree: dict[str, Any]) -> _RowDataT:
         for key, value in tree.copy().items():
             if isinstance(value, dict):
                 try:
@@ -64,7 +64,7 @@ class RowData:
 
     @classmethod
     def build(cls, **kwargs) -> _RowDataT:
-        tree: DefaultDict[str, Any] = nested_dict()
+        tree: defaultdict[str, Any] = nested_dict()
         for name, value in kwargs.items():
             subnames = name.split('.')
             subtree = tree

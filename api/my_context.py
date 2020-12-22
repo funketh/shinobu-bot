@@ -1,5 +1,6 @@
 import asyncio
-from typing import Optional, Union, Set, Sequence, Collection, Mapping, Callable, Awaitable
+from collections import Sequence, Collection, Mapping, Callable, Awaitable
+from typing import Optional, Union
 
 import discord
 from discord import Color
@@ -29,7 +30,7 @@ class Context(commands.Context):
     async def error(self, description: Optional[str] = None, content: Optional[str] = None, **kwargs):
         return await self.send_embed(discord.Color.red(), description, content, **kwargs)
 
-    async def confirm(self, msg: discord.Message, users: Set[discord.User] = None, **kwargs) -> bool:
+    async def confirm(self, msg: discord.Message, users: set[discord.User] = None, **kwargs) -> bool:
         users = users or set()
 
         async def yes(reaction: discord.Reaction, **_):

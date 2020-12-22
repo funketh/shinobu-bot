@@ -1,7 +1,7 @@
-from typing import Optional, Collection, Type
+from collections import Collection
+from typing import Optional
 
 import aiohttp
-import discord
 from discord.ext import commands
 
 from api.expected_errors import ExpectedCommandError
@@ -25,7 +25,7 @@ class MyAnimeList(commands.Cog):
         await find_series(ctx, search_terms, content_type=Manga)
 
 
-async def find_series(ctx: Context, search_terms: Collection[str], content_type: Type[Content]):
+async def find_series(ctx: Context, search_terms: Collection[str], content_type: type[Content]):
     if len(search_terms) == 0:
         raise ExpectedCommandError('Please specify a search query.')
 
