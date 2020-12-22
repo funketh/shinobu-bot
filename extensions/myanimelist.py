@@ -1,4 +1,4 @@
-from typing import Optional, Collection
+from typing import Optional, Collection, Type
 
 import aiohttp
 import discord
@@ -8,7 +8,7 @@ from api.expected_errors import ExpectedCommandError
 from api.my_context import Context
 from api.shinobu import Shinobu
 from utils.bing_search import search, first_match
-from utils.mal_scraper import Anime, Manga
+from utils.mal_scraper import Anime, Manga, Content
 
 
 class MyAnimeList(commands.Cog):
@@ -16,51 +16,28 @@ class MyAnimeList(commands.Cog):
     @commands.command(aliases=['a'])
     async def anime(self, ctx: Context, *search_terms: str):
         """Get information about an anime using myanimelist.net"""
-        await find_series(ctx, search_terms, content_type='anime')
+        await find_series(ctx, search_terms, content_type=Anime)
 
     @commands.cooldown(2, 10, commands.BucketType.user)
     @commands.command(aliases=['m'])
     async def manga(self, ctx: Context, *search_terms: str):
         """Get information about a manga using myanimelist.net"""
-        await find_series(ctx, search_terms, content_type='manga')
+        await find_series(ctx, search_terms, content_type=Manga)
 
 
-async def find_series(ctx: Context, search_terms: Collection[str], content_type: str):
-    if content_type == 'anime':
-        scraper_class = Anime
-    elif content_type == 'manga':
-        scraper_class = Manga
-    else:
-        raise ValueError(f'unknown {content_type=}')
-
+async def find_series(ctx: Context, search_terms: Collection[str], content_type: Type[Content]):
     if len(search_terms) == 0:
         raise ExpectedCommandError('Please specify a search query.')
 
-    series_id = await search_first_mal_id(content_type, ' '.join(search_terms))
+    series_id = await search_first_mal_id(content_type.domain_suffix, ' '.join(search_terms))
     if series_id is None:
         raise ExpectedCommandError("I couldn't find any results.")
 
     embed_msg = await ctx.send("*Getting the information from MyAnimeList.net...*")
-    ctx.typing()
-
-    scraper = await scraper_class.from_id(series_id)
-    embed = discord.Embed()
-    embed.colour = discord.Colour.dark_blue()
-    embed.set_author(name=scraper.title, url=scraper.url)
-    if scraper.thumbnail:
-        embed.set_thumbnail(url=scraper.thumbnail)
-    if scraper.score:
-        embed.add_field(name='Score', value=scraper.score)
-    if scraper.status:
-        embed.add_field(name='Status', value=scraper.status)
-
-    if content_type == 'manga':
-        if scraper.volumes:
-            embed.add_field(name='Volumes', value=scraper.volumes)
-        if scraper.chapters:
-            embed.add_field(name='Chapters', value=scraper.chapters)
-
-    await embed_msg.edit(content=" ", embed=embed)
+    async with ctx.typing():
+        scraper = content_type.from_id(series_id)
+        embed = await scraper.to_embed()
+        await embed_msg.edit(content=" ", embed=embed)
 
 
 async def search_first_mal_id(domain_suffix: str, query: str) -> Optional[int]:

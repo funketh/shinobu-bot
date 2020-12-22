@@ -1,6 +1,6 @@
 import logging
 from datetime import datetime, timedelta
-from typing import Optional, Tuple, AsyncIterator
+from typing import Tuple, AsyncIterator
 
 import aiohttp
 import discord
@@ -12,6 +12,7 @@ from data.CONSTANTS import CURRENCY, ANNOUNCEMENT_CHANNEL_ID
 from utils import database
 from utils import mal_rss
 from utils.database import User
+from utils.mal_scraper import Manga, Anime
 
 logger = logging.getLogger(__name__)
 
@@ -50,21 +51,19 @@ class Economy(commands.Cog):
 
         async with aiohttp.ClientSession() as session:
             for user in User.select_many(db, "SELECT * FROM user WHERE mal_username > ''"):
-                for content_type in ('anime', 'manga'):
+                for content_type in Anime, Manga:
                     content = await mal_rss.new_mal_content(db=db, session=session, content_type=content_type,
                                                             user_id=user.id, mal_username=user.mal_username)
                     with db:
                         for series_id, old_amount, consumed_amount in content:
-                            reward = await mal_rss.calculate_reward(content_type, series_id,
-                                                                    amount=consumed_amount - old_amount)
-                            # todo move calculate_reward into Anime/Manga class(look for any if statements checking for
-                            #  the content_type and move them there too)
+                            amount = consumed_amount - old_amount
+                            reward = await content_type.from_id(series_id).calculate_reward(amount)
                             db.execute('UPDATE user SET balance=balance+? WHERE id=?',
                                        (reward, user.id))
                             db.execute('REPLACE INTO consumed_media(user,type,id,amount) VALUES(?,?,?,?)',
-                                       (user.id, content_type, series_id, consumed_amount))
+                                       (user.id, content_type.domain_suffix, series_id, consumed_amount))
                             logger.info(f'user {user.id} consumed {consumed_amount - old_amount}'
-                                        f' bits of {series_id} ({content_type})')
+                                        f' bits of {series_id} ({content_type.domain_suffix})')
                             yield user, reward
 
     @commands.cooldown(1, 60)

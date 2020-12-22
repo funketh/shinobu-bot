@@ -11,6 +11,7 @@ discord-py = {extras = ["voice"],version = "*"}
 fuzzywuzzy = {extras = ["speedup"],version = "*"}
 feedparser = "*"
 aiocache = "*"
+async-property = "*"
 
 [requires]
 python_version = "3.9"
