@@ -1,6 +1,6 @@
 waifu*.tsv
 TOKEN
-Pipfile.lock
+*.lock
 shinobu.db
 logs/
 
