@@ -24,20 +24,18 @@ def nested_dict() -> DefaultDict:
     return defaultdict(nested_dict)
 
 
-class _UnavailableMeta(type):
+class _Unavailable:
     def __getattribute__(self, name: str):
         raise AttributeError('Invalid Field Access!')
 
 
-class Unavailable(metaclass=_UnavailableMeta): pass
-
+UNAVAILABLE = _Unavailable()
 
 _T = TypeVar('_T')
-NonObligatory = Union[Type[Unavailable], _T]
+NonObligatory = Union[_Unavailable, _T]
+_RowDataT = TypeVar('_RowDataT', bound='RowData')
 
 row_dataclass = partial(dataclass, unsafe_hash=True)
-
-_RowDataT = TypeVar('_RowDataT', bound='RowData')
 
 
 @row_dataclass
@@ -89,39 +87,39 @@ class RowData:
 @row_dataclass
 class Character(RowData):
     id: int
-    name: NonObligatory[str] = Unavailable
-    image_url: NonObligatory[Optional[str]] = Unavailable
-    series: NonObligatory[str] = Unavailable
-    rarity: NonObligatory[Rarity] = Unavailable
-    batch: NonObligatory[Batch] = Unavailable
+    name: NonObligatory[str] = UNAVAILABLE
+    image_url: NonObligatory[Optional[str]] = UNAVAILABLE
+    series: NonObligatory[str] = UNAVAILABLE
+    rarity: NonObligatory[Rarity] = UNAVAILABLE
+    batch: NonObligatory[Batch] = UNAVAILABLE
 
 
 @row_dataclass
 class Rarity(RowData):
     value: int
-    name: NonObligatory[str] = Unavailable
-    colour: NonObligatory[int] = Unavailable
-    weight: NonObligatory[float] = Unavailable
-    refund: NonObligatory[int] = Unavailable
-    upgrade_cost: NonObligatory[Optional[int]] = Unavailable
-    auto_upgrade: NonObligatory[bool] = Unavailable
+    name: NonObligatory[str] = UNAVAILABLE
+    colour: NonObligatory[int] = UNAVAILABLE
+    weight: NonObligatory[float] = UNAVAILABLE
+    refund: NonObligatory[int] = UNAVAILABLE
+    upgrade_cost: NonObligatory[Optional[int]] = UNAVAILABLE
+    auto_upgrade: NonObligatory[bool] = UNAVAILABLE
 
 
 @row_dataclass
 class User(RowData):
     id: int
-    balance: NonObligatory[int] = Unavailable
-    last_withdrawal: NonObligatory[str] = Unavailable
-    birthday: NonObligatory[str] = Unavailable
-    mal_username: NonObligatory[str] = Unavailable
+    balance: NonObligatory[int] = UNAVAILABLE
+    last_withdrawal: NonObligatory[str] = UNAVAILABLE
+    birthday: NonObligatory[str] = UNAVAILABLE
+    mal_username: NonObligatory[str] = UNAVAILABLE
 
 
 @row_dataclass
 class Waifu(RowData):
     id: int
-    character: NonObligatory[Character] = Unavailable
-    rarity: NonObligatory[Rarity] = Unavailable
-    user: NonObligatory[User] = Unavailable
+    character: NonObligatory[Character] = UNAVAILABLE
+    rarity: NonObligatory[Rarity] = UNAVAILABLE
+    user: NonObligatory[User] = UNAVAILABLE
 
     def to_embed(self) -> discord.Embed:
         embed = discord.Embed(color=self.rarity.colour,
@@ -132,7 +130,7 @@ class Waifu(RowData):
         return embed
 
     def ensure_ownership(self, db: DB):
-        updated_waifu = self.select_one(db, 'SELECT * FROM waifu WHERE id=? AND user=?', [self.id, self.user.id])
+        updated_waifu: Waifu = self.select_one(db, 'SELECT * FROM waifu WHERE id=? AND user=?', [self.id, self.user.id])
         if updated_waifu is None:
             raise ExpectedCommandError(f"You no longer own {self.character.name}!")
         elif (updated_waifu.id != self.id
@@ -145,12 +143,12 @@ class Waifu(RowData):
 @row_dataclass
 class Pack(RowData):
     name: str
-    cost: NonObligatory[int] = Unavailable
-    description: NonObligatory[str] = Unavailable
-    start_date: NonObligatory[str] = Unavailable
-    end_date: NonObligatory[Optional[str]] = Unavailable
+    cost: NonObligatory[int] = UNAVAILABLE
+    description: NonObligatory[str] = UNAVAILABLE
+    start_date: NonObligatory[str] = UNAVAILABLE
+    end_date: NonObligatory[Optional[str]] = UNAVAILABLE
 
 
 @row_dataclass
 class Batch(RowData):
-    name: NonObligatory[str] = Unavailable
+    name: NonObligatory[str] = UNAVAILABLE
