@@ -69,7 +69,8 @@ class Shop(commands.Cog):
             user = maybe_user
         else:
             user = ctx.author
-            query = maybe_user + ' ' + query
+            if maybe_user:
+                query = maybe_user + ' ' + query
 
         db = database.connect()
 
