@@ -76,7 +76,7 @@ async def waifu_interactions(ctx: Context, db: DB, msg: discord.Message, waifu: 
 async def user_interactions(ctx: Context, msg: discord.Message, target_user: discord.User):
     async def send(user: discord.User, **_):
         if user == target_user:
-            answer = await ctx.quick_question('Who do you want to give money to?', user)
+            answer = await ctx.quick_question(f'Who do you want to give {CURRENCY} to?', user)
             if answer is None:
                 return
 
@@ -87,7 +87,7 @@ async def user_interactions(ctx: Context, msg: discord.Message, target_user: dis
         else:
             trade_to = target_user
 
-        answer = await ctx.quick_question(f'How much money do you want to give {trade_to.mention}?', user)
+        answer = await ctx.quick_question(f'How much {CURRENCY} do you want to give {trade_to.mention}?', user)
         if answer is None:
             return
 

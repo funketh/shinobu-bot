@@ -20,7 +20,7 @@ def add_money(db: DB, user_id: int, amount: int):
     try:
         db.execute('UPDATE user SET balance=balance+? WHERE id=?', [amount, user_id])
     except sqlite3.IntegrityError:
-        raise ExpectedCommandError(f'<@{user_id}> does not have enough money!')
+        raise ExpectedCommandError(f'<@{user_id}> does not have enough {CURRENCY}!')
 
 
 @change_dataclass
