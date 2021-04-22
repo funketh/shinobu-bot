@@ -1,3 +1,7 @@
+# DISCONTINUED
+This bot is now being developed in Haskell.
+The new version can be found at https://github.com/funketh/shinobu-bot-hs.
+
 # Setup
 1. Create a file in `data` named `TOKEN` containing your bot token.
 2. Edit `CONSTANTS.py` and configure it.
