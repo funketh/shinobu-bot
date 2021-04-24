@@ -1,5 +1,5 @@
 [tool.poetry]
-name = "shinobu-bot"
+name = "shinobu-bot-py"
 version = "0.1.0"
 description = ""
 authors = ["funketh <theodor.k.funke@gmail.com>"]
